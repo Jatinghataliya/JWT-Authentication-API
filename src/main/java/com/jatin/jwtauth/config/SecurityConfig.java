@@ -46,10 +46,14 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
 
             // Define which endpoints are public vs protected
+            // Layer 1 of RBAC: URL-level rules (Layer 2 is @PreAuthorize on each method)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()   // login + register are public
-                .requestMatchers("/actuator/health").permitAll()
-                .anyRequest().authenticated()                  // everything else requires a valid JWT
+                .requestMatchers("/api/auth/**").permitAll()               // public
+                .requestMatchers("/actuator/health").permitAll()           // public
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")         // ADMIN only
+                .requestMatchers("/api/moderator/**").hasAnyRole("MODERATOR", "ADMIN")  // MODERATOR+
+                .requestMatchers("/api/user/**").authenticated()           // any logged-in user
+                .anyRequest().authenticated()
             )
 
             // STATELESS — no session, no cookies → horizontally scalable

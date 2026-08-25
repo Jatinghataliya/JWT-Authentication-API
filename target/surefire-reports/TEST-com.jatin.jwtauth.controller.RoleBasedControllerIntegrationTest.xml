@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.jatin.jwtauth.controller.DemoControllerIntegrationTest" time="1.257" tests="8" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="7.24" tests="18" errors="0" skipped="0" failures="0">
   <properties>
     <property name="sun.desktop" value="windows"/>
     <property name="awt.toolkit" value="sun.awt.windows.WToolkit"/>
@@ -90,16 +90,26 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="getUserMe_validToken_returns200" classname="com.jatin.jwtauth.controller.DemoControllerIntegrationTest" time="0.315">
-    <system-out><![CDATA[2026-08-25T16:48:43.800+05:30  INFO 21796 --- [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.jatin.jwtauth.controller.DemoControllerIntegrationTest]: DemoControllerIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-08-25T16:48:43.802+05:30  INFO 21796 --- [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.jatin.jwtauth.JwtAuthApiApplication for test class com.jatin.jwtauth.controller.DemoControllerIntegrationTest
+  <testcase name="admin_changeRole_returns200" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.423">
+    <system-out><![CDATA[2026-08-25T16:48:45.055+05:30  INFO 21796 --- [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest]: RoleBasedControllerIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-08-25T16:48:45.061+05:30  INFO 21796 --- [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.jatin.jwtauth.JwtAuthApiApplication for test class com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest
 ]]></system-out>
   </testcase>
-  <testcase name="getUserGreet_noToken_returns401" classname="com.jatin.jwtauth.controller.DemoControllerIntegrationTest" time="0.133"/>
-  <testcase name="getUserMe_malformedToken_returns401" classname="com.jatin.jwtauth.controller.DemoControllerIntegrationTest" time="0.133"/>
-  <testcase name="getUserMe_noToken_returns401" classname="com.jatin.jwtauth.controller.DemoControllerIntegrationTest" time="0.137"/>
-  <testcase name="getAdminDashboard_userToken_returns403" classname="com.jatin.jwtauth.controller.DemoControllerIntegrationTest" time="0.132"/>
-  <testcase name="getAdminDashboard_noToken_returns401" classname="com.jatin.jwtauth.controller.DemoControllerIntegrationTest" time="0.131"/>
-  <testcase name="getUserMe_missingBearerPrefix_returns401" classname="com.jatin.jwtauth.controller.DemoControllerIntegrationTest" time="0.134"/>
-  <testcase name="getUserGreet_validToken_returns200" classname="com.jatin.jwtauth.controller.DemoControllerIntegrationTest" time="0.138"/>
+  <testcase name="user_getDashboard_returns200" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.395"/>
+  <testcase name="admin_adminDashboard_returns200" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.391"/>
+  <testcase name="noToken_adminDashboard_returns401" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.388"/>
+  <testcase name="admin_moderatorUsers_returns200" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.385"/>
+  <testcase name="admin_createModeratorUser_returns201" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.437"/>
+  <testcase name="moderator_getMe_returns200" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.4"/>
+  <testcase name="user_adminDashboard_returns403" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.384"/>
+  <testcase name="user_moderatorDashboard_returns403" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.386"/>
+  <testcase name="moderator_adminDashboard_returns403" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.367"/>
+  <testcase name="admin_listAllUsers_returns200" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.377"/>
+  <testcase name="moderator_moderatorDashboard_returns200" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.385"/>
+  <testcase name="admin_getMe_returns200" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.39"/>
+  <testcase name="user_createUser_returns403" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.395"/>
+  <testcase name="moderator_listUsers_returns200" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.383"/>
+  <testcase name="user_getMe_returns200" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.364"/>
+  <testcase name="admin_deleteNonExistentUser_returns400" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.598"/>
+  <testcase name="admin_deleteUser_returns204" classname="com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest" time="0.384"/>
 </testsuite>

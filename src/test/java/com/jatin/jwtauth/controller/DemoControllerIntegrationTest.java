@@ -3,6 +3,7 @@ package com.jatin.jwtauth.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jatin.jwtauth.dto.AuthRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
+import com.jatin.jwtauth.entity.User;
 import com.jatin.jwtauth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,13 +21,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Integration tests for DemoController.
- *
- * Tests cover:
- *  - Accessing protected endpoints without a token → 401
- *  - USER role accessing /user/me and /user/greet → 200
- *  - USER role accessing /admin/dashboard → 403
- *  - Sending an invalid token → 401
+ * Integration tests for protected endpoints (UserController + AdminController).
+ * Verifies: 401 without token, 200 with valid USER token, 403 wrong role.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -54,9 +50,9 @@ class DemoControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /user/greet: no token → 401 Unauthorized")
+    @DisplayName("GET /user/dashboard: no token → 401 Unauthorized")
     void getUserGreet_noToken_returns401() throws Exception {
-        mockMvc.perform(get("/api/user/greet"))
+        mockMvc.perform(get("/api/user/dashboard"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -70,24 +66,22 @@ class DemoControllerIntegrationTest {
     // ─── Valid USER token ────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("GET /user/me: valid USER token → 200 with username and authorities")
+    @DisplayName("GET /user/me: valid USER token → 200 with username and role")
     void getUserMe_validToken_returns200() throws Exception {
         mockMvc.perform(get("/api/user/me")
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("jatin"))
-                .andExpect(jsonPath("$.authorities").value(containsString("ROLE_USER")))
-                .andExpect(jsonPath("$.message").value("You are authenticated!"));
+                .andExpect(jsonPath("$.role").value("USER"));
     }
 
     @Test
-    @DisplayName("GET /user/greet: valid USER token → 200 with greeting message")
+    @DisplayName("GET /user/dashboard: valid USER token → 200 with welcome message")
     void getUserGreet_validToken_returns200() throws Exception {
-        mockMvc.perform(get("/api/user/greet")
+        mockMvc.perform(get("/api/user/dashboard")
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value(containsString("jatin")))
-                .andExpect(jsonPath("$.message").value(containsString("JWT is valid")));
+                .andExpect(jsonPath("$.message").value(containsString("jatin")));
     }
 
     @Test
@@ -112,37 +106,30 @@ class DemoControllerIntegrationTest {
     @DisplayName("GET /user/me: token missing Bearer prefix → 401 Unauthorized")
     void getUserMe_missingBearerPrefix_returns401() throws Exception {
         mockMvc.perform(get("/api/user/me")
-                        .header("Authorization", userToken))   // no "Bearer " prefix
+                        .header("Authorization", userToken))
                 .andExpect(status().isUnauthorized());
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    /**
-     * Registers a user, logs in, and returns the accessToken.
-     * Shared setup used by all tests that need a valid token.
-     */
     private String registerAndLogin(String username, String password) throws Exception {
         AuthRequest req = new AuthRequest();
         req.setUsername(username);
         req.setPassword(password);
         String body = objectMapper.writeValueAsString(req);
 
-        // Register
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isCreated());
 
-        // Login and extract token
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isOk())
                 .andReturn();
 
-        AuthResponse response = objectMapper.readValue(
-                result.getResponse().getContentAsString(), AuthResponse.class);
-        return response.getAccessToken();
+        return objectMapper.readValue(result.getResponse().getContentAsString(), AuthResponse.class)
+                .getAccessToken();
     }
 }
