@@ -28,6 +28,11 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
+  # ─── Redis (production cache backend) ───────────────────────────────────────
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+
   # ─── OAuth2 Social Login (Google) — set real values via env vars in production ──
   security:
     oauth2:
@@ -59,6 +64,8 @@ app:
   rate-limit:
     capacity: ${RATE_LIMIT_CAPACITY:20}          # max burst per IP
     refill-per-minute: ${RATE_LIMIT_REFILL:10}   # tokens added per minute
+  cache:
+    type: ${CACHE_TYPE:caffeine}                 # caffeine (default) or redis
 
 # ─── Brute-force protection ────────────────────────────────────────────────────
 security:

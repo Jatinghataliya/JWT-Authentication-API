@@ -40,6 +40,8 @@ app:
   rate-limit:
     capacity: 5                # very low limit for fast rate-limit tests
     refill-per-minute: 5
+  cache:
+    type: caffeine             # always use in-memory Caffeine in tests
 
 security:
   max-failed-attempts: 3       # low threshold for fast tests

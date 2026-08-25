@@ -12,6 +12,9 @@ import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import com.jatin.jwtauth.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -80,7 +83,8 @@ public class AdminService {
                 .build();
     }
 
-    /** Return all users (password-safe projection, non-pageable). */
+    /** Return all users (password-safe projection, non-pageable). Cached. */
+    @Cacheable("users")
     public List<UserSummary> getAllUsers() {
         return userRepository.findAll().stream().map(UserSummary::from).toList();
     }
@@ -96,7 +100,8 @@ public class AdminService {
                 result.getTotalElements(), result.getTotalPages(), result.isLast());
     }
 
-    /** Return a single user by id. */
+    /** Return a single user by id. Cached by id. */
+    @Cacheable(value = "users", key = "#id")
     public UserSummary getUserById(Long id) {
         return userRepository.findById(id)
                 .map(UserSummary::from)
@@ -108,6 +113,7 @@ public class AdminService {
      * Idempotent — assigning a role the user already has is a no-op.
      */
     @Transactional
+    @CacheEvict(value = "users", allEntries = true)
     public UserSummary assignRole(Long userId, AssignRoleRequest request) {
         User user = findUser(userId);
         Role role = findRole(request.getRoleName());
@@ -120,6 +126,7 @@ public class AdminService {
      * Throws if the role is not currently assigned.
      */
     @Transactional
+    @CacheEvict(value = "users", allEntries = true)
     public UserSummary revokeRole(Long userId, AssignRoleRequest request) {
         User user = findUser(userId);
         Role role = findRole(request.getRoleName());
@@ -140,6 +147,7 @@ public class AdminService {
      * @throws IllegalArgumentException if trying to disable the last ADMIN
      */
     @Transactional
+    @CacheEvict(value = "users", allEntries = true)
     public UserSummary disableUser(Long id) {
         User user = findUser(id);
         user.setEnabled(false);
@@ -150,6 +158,7 @@ public class AdminService {
 
     /** Re-enable a previously disabled user account. */
     @Transactional
+    @CacheEvict(value = "users", allEntries = true)
     public UserSummary enableUser(Long id) {
         User user = findUser(id);
         user.setEnabled(true);
@@ -163,6 +172,7 @@ public class AdminService {
      * Locked users receive LockedException on login attempt.
      */
     @Transactional
+    @CacheEvict(value = "users", allEntries = true)
     public UserSummary lockUser(Long id) {
         User user = findUser(id);
         user.setAccountNonLocked(false);
@@ -174,6 +184,7 @@ public class AdminService {
 
     /** Unlock a previously locked user account and clear the lock timestamp. */
     @Transactional
+    @CacheEvict(value = "users", allEntries = true)
     public UserSummary unlockUser(Long id) {
         User user = findUser(id);
         user.setAccountNonLocked(true);
@@ -185,6 +196,7 @@ public class AdminService {
 
     /** Delete a user by id. Removes associated refresh token first to satisfy the FK. */
     @Transactional
+    @CacheEvict(value = "users", allEntries = true)
     public void deleteUser(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
