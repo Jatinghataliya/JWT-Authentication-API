@@ -1,6 +1,8 @@
 package com.jatin.jwtauth.config;
 
 import com.jatin.jwtauth.filter.JwtAuthFilter;
+import com.jatin.jwtauth.security.OAuth2SuccessHandler;
+import com.jatin.jwtauth.service.OAuth2UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -38,6 +40,8 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
+    private final OAuth2UserService oAuth2UserService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -52,6 +56,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/resend-verification").authenticated() // requires token
                 .requestMatchers("/api/auth/**").permitAll()               // public — login, register, refresh
+                .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll() // OAuth2 callback URLs
                 .requestMatchers("/actuator/**").permitAll()               // public — all actuator endpoints
                 .requestMatchers(                                          // public — Swagger UI + OpenAPI spec
                         "/swagger-ui.html",
@@ -65,9 +70,24 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
 
-            // STATELESS — no session, no cookies → horizontally scalable
+            // STATELESS for API calls — but OAuth2 needs a brief session for the redirect flow
+            // We use IF_REQUIRED so Spring can store the OAuth2 state parameter temporarily
             .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+            )
+
+            // OAuth2 social login
+            .oauth2Login(oauth2 -> oauth2
+                .userInfoEndpoint(userInfo -> userInfo
+                    .userService(oAuth2UserService)
+                )
+                .successHandler(oAuth2SuccessHandler)
+                .failureHandler((request, response, exception) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"status\":401,\"error\":\"OAuth2 login failed\",\"message\":\""
+                            + exception.getMessage() + "\"}");
+                })
             )
 
             // Return 401 (not 403) for unauthenticated requests

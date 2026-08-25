@@ -38,9 +38,25 @@ jwt:
   blacklist:
     cleanup-interval-ms: ${JWT_BLACKLIST_CLEANUP_MS:3600000} # 1 hour    (purge expired JTIs)
 
-# ─── Application base URL (used in email links) ───────────────────────────────
+# ─── Application base URL and OAuth2 redirect ────────────────────────────────
 app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/callback}
+
+# ─── OAuth2 Social Login (Google) — set real values via env vars in production ──
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:dummy-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:dummy-client-secret}
+            scope: openid,email,profile
+        provider:
+          google:
+            issuer-uri: https://accounts.google.com
 
 # ─── Brute-force protection ────────────────────────────────────────────────────
 security:
