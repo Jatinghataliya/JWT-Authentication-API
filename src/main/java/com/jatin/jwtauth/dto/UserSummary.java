@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -18,6 +19,11 @@ public class UserSummary {
 
     private Long id;
     private String username;
+    private String email;
+    private String firstName;
+    private String lastName;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     /** All role names assigned to this user. */
     private Set<String> roles;
 
@@ -25,6 +31,11 @@ public class UserSummary {
         return UserSummary.builder()
                 .id(user.getId())
                 .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
                 .roles(user.getRoles().stream()
                         .map(r -> r.getName())
                         .collect(Collectors.toSet()))

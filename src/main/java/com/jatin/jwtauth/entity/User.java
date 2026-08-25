@@ -1,22 +1,28 @@
 package com.jatin.jwtauth.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
 /**
- * User entity — now holds a dynamic Set<Role> instead of a hardcoded enum.
+ * User entity — holds credentials, profile fields, and a dynamic Set<Role>.
  *
- * Key learning point:
- *  The @ManyToMany relationship creates a "user_roles" join table in the DB.
- *  A user can have ZERO or more roles. Roles are independent DB records and
- *  can be created at runtime without a code change.
+ * Key learning points:
+ *  - @CreationTimestamp / @UpdateTimestamp are managed entirely by Hibernate;
+ *    no code needs to set them manually.
+ *  - Profile fields (email, firstName, lastName) are nullable — existing users
+ *    have no data for them until they update their profile.
+ *  - The @ManyToMany relationship creates a "user_roles" join table in the DB.
  */
 @Entity
 @Table(name = "users")
@@ -37,6 +43,32 @@ public class User {
     @Column(nullable = false)
     @NotBlank
     private String password;
+
+    // ─── Profile fields ───────────────────────────────────────────────────────
+
+    @Email
+    @Column(unique = true)
+    private String email;
+
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
+    // ─── Audit timestamps ─────────────────────────────────────────────────────
+
+    /** Set once at INSERT — Hibernate manages this automatically. */
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    /** Updated on every UPDATE — Hibernate manages this automatically. */
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    // ─── Roles ───────────────────────────────────────────────────────────────
 
     /**
      * ManyToMany — one user can have many roles, one role can belong to many users.
