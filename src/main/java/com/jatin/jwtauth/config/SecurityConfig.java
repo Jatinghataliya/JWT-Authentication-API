@@ -50,8 +50,14 @@ public class SecurityConfig {
             // With dynamic roles, fine-grained role checks live ONLY in @PreAuthorize.
             // URL rules here only enforce authentication and broad path-level ADMIN guard.
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()               // public
-                .requestMatchers("/actuator/health").permitAll()           // public
+                .requestMatchers("/api/auth/**").permitAll()               // public — login + register
+                .requestMatchers("/actuator/**").permitAll()               // public — all actuator endpoints
+                .requestMatchers(                                          // public — Swagger UI + OpenAPI spec
+                        "/swagger-ui.html",
+                        "/swagger-ui/**",
+                        "/api-docs",
+                        "/api-docs/**"
+                ).permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")         // ADMIN only — URL guard
                 .requestMatchers("/api/moderator/**").hasAnyRole("MODERATOR", "ADMIN")
                 .requestMatchers("/api/user/**").authenticated()

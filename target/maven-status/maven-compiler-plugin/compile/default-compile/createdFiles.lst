@@ -11,6 +11,7 @@ com\jatin\jwtauth\dto\UserSummary.class
 com\jatin\jwtauth\controller\AuthController.class
 com\jatin\jwtauth\dto\RoleResponse$RoleResponseBuilder.class
 com\jatin\jwtauth\entity\Role.class
+com\jatin\jwtauth\config\OpenApiConfig.class
 com\jatin\jwtauth\entity\User.class
 com\jatin\jwtauth\dto\AssignRoleRequest.class
 com\jatin\jwtauth\repository\UserRepository.class

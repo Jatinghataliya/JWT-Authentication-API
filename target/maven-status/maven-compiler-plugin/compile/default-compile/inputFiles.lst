@@ -15,6 +15,7 @@ C:\Users\JatinGhataliya\Projects\JWT-Authentication-API\src\main\java\com\jatin\
 C:\Users\JatinGhataliya\Projects\JWT-Authentication-API\src\main\java\com\jatin\jwtauth\dto\AuthRequest.java
 C:\Users\JatinGhataliya\Projects\JWT-Authentication-API\src\main\java\com\jatin\jwtauth\service\RoleService.java
 C:\Users\JatinGhataliya\Projects\JWT-Authentication-API\src\main\java\com\jatin\jwtauth\config\DataInitializer.java
+C:\Users\JatinGhataliya\Projects\JWT-Authentication-API\src\main\java\com\jatin\jwtauth\config\OpenApiConfig.java
 C:\Users\JatinGhataliya\Projects\JWT-Authentication-API\src\main\java\com\jatin\jwtauth\controller\UserController.java
 C:\Users\JatinGhataliya\Projects\JWT-Authentication-API\src\main\java\com\jatin\jwtauth\service\AuthService.java
 C:\Users\JatinGhataliya\Projects\JWT-Authentication-API\src\main\java\com\jatin\jwtauth\exception\GlobalExceptionHandler.java

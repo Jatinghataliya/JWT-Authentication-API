@@ -8,6 +8,9 @@ import com.jatin.jwtauth.dto.RoleResponse;
 import com.jatin.jwtauth.dto.UserSummary;
 import com.jatin.jwtauth.service.AdminService;
 import com.jatin.jwtauth.service.RoleService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,81 +21,54 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-/**
- * AdminController — ADMIN-only operations.
- *
- * Role Catalog (via RoleService):
- *   POST   /api/admin/roles             — create a new role
- *   GET    /api/admin/roles             — list all roles
- *   GET    /api/admin/roles/{id}        — get one role
- *   PUT    /api/admin/roles/{id}        — update a role's description
- *   DELETE /api/admin/roles/{id}        — delete a role
- *
- * User Management (via AdminService):
- *   POST   /api/admin/users             — create user with specific roles
- *   GET    /api/admin/users             — list all users
- *   GET    /api/admin/users/{id}        — get user by id
- *   POST   /api/admin/users/{id}/roles  — assign a role to a user
- *   DELETE /api/admin/users/{id}/roles  — revoke a role from a user
- *   DELETE /api/admin/users/{id}        — delete a user
- */
 @RestController
 @RequestMapping("/api/admin")
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
+@Tag(name = "4. Admin", description = "Full administrative control. Requires ADMIN role.")
+@SecurityRequirement(name = "bearerAuth")
 public class AdminController {
 
     private final AdminService adminService;
     private final RoleService roleService;
 
-    // ═══════════════════════════════════════════════════════════
-    // Role Catalog
-    // ═══════════════════════════════════════════════════════════
+    // ═══ Role Catalog ════════════════════════════════════════════════════════
 
-    /** GET /api/admin/roles — list every role in the system */
+    @Operation(summary = "List all roles", description = "Returns every role in the system catalog.")
     @GetMapping("/roles")
     public ResponseEntity<List<RoleResponse>> getAllRoles() {
         return ResponseEntity.ok(roleService.getAllRoles());
     }
 
-    /** GET /api/admin/roles/{id} */
+    @Operation(summary = "Get role by ID")
     @GetMapping("/roles/{id}")
     public ResponseEntity<RoleResponse> getRoleById(@PathVariable Long id) {
         return ResponseEntity.ok(roleService.getRoleById(id));
     }
 
-    /**
-     * POST /api/admin/roles — create a new dynamic role at runtime
-     * Body: { "name": "EDITOR", "description": "Can edit articles" }
-     */
+    @Operation(summary = "Create a new role",
+               description = "Creates a brand-new role at runtime — no code change or redeployment needed. Name is normalised to UPPER_CASE.")
     @PostMapping("/roles")
     public ResponseEntity<RoleResponse> createRole(@Valid @RequestBody RoleRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(roleService.createRole(request));
     }
 
-    /**
-     * PUT /api/admin/roles/{id} — update a role's description
-     * Body: { "name": "ignored", "description": "Updated description" }
-     */
+    @Operation(summary = "Update a role's description")
     @PutMapping("/roles/{id}")
-    public ResponseEntity<RoleResponse> updateRole(
-            @PathVariable Long id,
-            @Valid @RequestBody RoleRequest request) {
+    public ResponseEntity<RoleResponse> updateRole(@PathVariable Long id, @Valid @RequestBody RoleRequest request) {
         return ResponseEntity.ok(roleService.updateRole(id, request));
     }
 
-    /** DELETE /api/admin/roles/{id} — remove a role from the system */
+    @Operation(summary = "Delete a role", description = "Removes the role from the catalog and all user assignments.")
     @DeleteMapping("/roles/{id}")
     public ResponseEntity<Void> deleteRole(@PathVariable Long id) {
         roleService.deleteRole(id);
         return ResponseEntity.noContent().build();
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // User Management
-    // ═══════════════════════════════════════════════════════════
+    // ═══ User Management ═════════════════════════════════════════════════════
 
-    /** GET /api/admin/dashboard */
+    @Operation(summary = "Admin dashboard")
     @GetMapping("/dashboard")
     public ResponseEntity<Map<String, String>> adminDashboard() {
         return ResponseEntity.ok(Map.of(
@@ -101,50 +77,38 @@ public class AdminController {
         ));
     }
 
-    /**
-     * POST /api/admin/users — create a user with one or more roles
-     * Body: { "username": "alice", "secret": "s3cur3!", "roles": ["EDITOR", "USER"] }
-     */
+    @Operation(summary = "Create user with specific roles",
+               description = "Creates a user and assigns one or more roles by name. Roles must already exist in the catalog.")
     @PostMapping("/users")
     public ResponseEntity<AuthResponse> createUser(@Valid @RequestBody AdminRegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(adminService.createUser(request));
     }
 
-    /** GET /api/admin/users */
+    @Operation(summary = "List all users", description = "Returns all registered users. No credentials included.")
     @GetMapping("/users")
     public ResponseEntity<List<UserSummary>> getAllUsers() {
         return ResponseEntity.ok(adminService.getAllUsers());
     }
 
-    /** GET /api/admin/users/{id} */
+    @Operation(summary = "Get user by ID")
     @GetMapping("/users/{id}")
     public ResponseEntity<UserSummary> getUserById(@PathVariable Long id) {
         return ResponseEntity.ok(adminService.getUserById(id));
     }
 
-    /**
-     * POST /api/admin/users/{id}/roles — assign a role to a user
-     * Body: { "roleName": "EDITOR" }
-     */
+    @Operation(summary = "Assign a role to a user", description = "Idempotent — assigning an already-held role is a no-op.")
     @PostMapping("/users/{id}/roles")
-    public ResponseEntity<UserSummary> assignRole(
-            @PathVariable Long id,
-            @Valid @RequestBody AssignRoleRequest request) {
+    public ResponseEntity<UserSummary> assignRole(@PathVariable Long id, @Valid @RequestBody AssignRoleRequest request) {
         return ResponseEntity.ok(adminService.assignRole(id, request));
     }
 
-    /**
-     * DELETE /api/admin/users/{id}/roles — revoke a role from a user
-     * Body: { "roleName": "EDITOR" }
-     */
+    @Operation(summary = "Revoke a role from a user", description = "Returns 400 if the user does not hold the specified role.")
     @DeleteMapping("/users/{id}/roles")
-    public ResponseEntity<UserSummary> revokeRole(
-            @PathVariable Long id,
-            @Valid @RequestBody AssignRoleRequest request) {
+    public ResponseEntity<UserSummary> revokeRole(@PathVariable Long id, @Valid @RequestBody AssignRoleRequest request) {
         return ResponseEntity.ok(adminService.revokeRole(id, request));
     }
 
-    /** DELETE /api/admin/users/{id} */
+    @Operation(summary = "Delete a user permanently")
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         adminService.deleteUser(id);

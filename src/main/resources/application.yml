@@ -20,3 +20,44 @@ server:
 jwt:
   secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
   expiration: ${JWT_EXPIRATION_MS:86400000}   # 24 hours in milliseconds
+
+# ─── Spring Boot Actuator ─────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        # Expose: health, info, metrics, env, beans, mappings, loggers, httptrace
+        include: health,info,metrics,env,beans,mappings,loggers
+      base-path: /actuator
+  endpoint:
+    health:
+      # Show full component breakdown (db, diskSpace, etc.) — restrict to ADMIN in prod
+      show-details: always
+      show-components: always
+    info:
+      enabled: true
+  info:
+    env:
+      enabled: true
+    build:
+      enabled: true
+
+# Application info shown at GET /actuator/info
+info:
+  app:
+    name: JWT Authentication API
+    description: Stateless JWT auth with dynamic role-based access control
+    version: 1.0.0
+    java-version: "@java.version@"
+
+# ─── SpringDoc / Swagger UI ───────────────────────────────────────────────────
+springdoc:
+  api-docs:
+    path: /api-docs           # OpenAPI JSON spec:  GET /api-docs
+  swagger-ui:
+    path: /swagger-ui.html    # Swagger UI:         GET /swagger-ui.html
+    operationsSorter: method  # Sort by HTTP method (GET before POST etc.)
+    tagsSorter: alpha          # Sort tags alphabetically
+    try-it-out-enabled: true  # Enable "Try it out" by default
+    persist-authorization: true  # JWT token survives page refresh
+  show-actuator: false        # Don't include actuator endpoints in Swagger
