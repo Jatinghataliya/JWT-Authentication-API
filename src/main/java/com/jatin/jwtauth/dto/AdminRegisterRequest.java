@@ -1,14 +1,15 @@
 package com.jatin.jwtauth.dto;
 
-import com.jatin.jwtauth.entity.User;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.Set;
+
 /**
- * Used by ADMIN to register a user with an explicit role (USER / MODERATOR / ADMIN).
- * Regular /register always creates a USER — only admins can assign higher roles.
+ * Used by ADMIN to register a user and assign one or more roles by name.
+ * Regular /register always assigns only the default "USER" role.
  */
 @Data
 public class AdminRegisterRequest {
@@ -17,10 +18,10 @@ public class AdminRegisterRequest {
     @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
     private String username;
 
-    @NotBlank(message = "Password must not be blank")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    @NotBlank(message = "Credential must not be blank")
+    @Size(min = 6, message = "Credential must be at least 6 characters")
     private String password;
 
-    @NotNull(message = "Role must not be null")
-    private User.Role role;
+    @NotEmpty(message = "At least one role name must be provided")
+    private Set<String> roles;
 }

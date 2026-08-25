@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.jatin.jwtauth.service.AuthServiceTest" time="0.243" tests="5" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.jatin.jwtauth.controller.DynamicRoleIntegrationTest" time="2.978" tests="8" errors="0" skipped="0" failures="0">
   <properties>
     <property name="sun.desktop" value="windows"/>
     <property name="awt.toolkit" value="sun.awt.windows.WToolkit"/>
@@ -90,9 +90,16 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="login_validCredentials_returnsAuthResponse" classname="com.jatin.jwtauth.service.AuthServiceTest" time="0.226"/>
-  <testcase name="register_duplicateUsername_throwsException" classname="com.jatin.jwtauth.service.AuthServiceTest" time="0.004"/>
-  <testcase name="register_newUsername_returnsAuthResponse" classname="com.jatin.jwtauth.service.AuthServiceTest" time="0.003"/>
-  <testcase name="login_wrongCredentials_throwsBadCredentialsException" classname="com.jatin.jwtauth.service.AuthServiceTest" time="0.002"/>
-  <testcase name="register_passwordIsEncoded" classname="com.jatin.jwtauth.service.AuthServiceTest" time="0.004"/>
+  <testcase name="deleteRole_removedFromCatalog" classname="com.jatin.jwtauth.controller.DynamicRoleIntegrationTest" time="0.93">
+    <system-out><![CDATA[2026-08-25T17:00:45.516+05:30  INFO 25408 --- [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.jatin.jwtauth.controller.DynamicRoleIntegrationTest]: DynamicRoleIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-08-25T17:00:45.519+05:30  INFO 25408 --- [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.jatin.jwtauth.JwtAuthApiApplication for test class com.jatin.jwtauth.controller.DynamicRoleIntegrationTest
+]]></system-out>
+  </testcase>
+  <testcase name="assignNonExistentRole_returns400" classname="com.jatin.jwtauth.controller.DynamicRoleIntegrationTest" time="0.379"/>
+  <testcase name="createNewRole_appearsInCatalog" classname="com.jatin.jwtauth.controller.DynamicRoleIntegrationTest" time="0.273"/>
+  <testcase name="assignDynamicRole_userReceivesIt" classname="com.jatin.jwtauth.controller.DynamicRoleIntegrationTest" time="0.278"/>
+  <testcase name="createDuplicateRole_returns400" classname="com.jatin.jwtauth.controller.DynamicRoleIntegrationTest" time="0.279"/>
+  <testcase name="updateRole_changesDescription" classname="com.jatin.jwtauth.controller.DynamicRoleIntegrationTest" time="0.286"/>
+  <testcase name="revokeUnassignedRole_returns400" classname="com.jatin.jwtauth.controller.DynamicRoleIntegrationTest" time="0.272"/>
+  <testcase name="user_roleEndpoints_returns403" classname="com.jatin.jwtauth.controller.DynamicRoleIntegrationTest" time="0.266"/>
 </testsuite>

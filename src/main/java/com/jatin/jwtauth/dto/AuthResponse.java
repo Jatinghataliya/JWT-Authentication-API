@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Set;
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -15,5 +17,6 @@ public class AuthResponse {
     private String tokenType;
     private long expiresIn;
     private String username;
-    private String role;
+    /** All roles assigned to this user, e.g. ["USER", "EDITOR"] */
+    private Set<String> roles;
 }

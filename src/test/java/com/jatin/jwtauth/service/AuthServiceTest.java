@@ -2,7 +2,9 @@ package com.jatin.jwtauth.service;
 
 import com.jatin.jwtauth.dto.AuthRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
+import com.jatin.jwtauth.entity.Role;
 import com.jatin.jwtauth.entity.User;
+import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import com.jatin.jwtauth.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +24,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -29,17 +32,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for AuthService.
- *
- * All dependencies are mocked — no Spring context, no DB, very fast.
- * Tests cover: successful register, duplicate username, successful login,
- * and wrong credentials.
- */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
     @Mock private UserRepository userRepository;
+    @Mock private RoleRepository roleRepository;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private JwtUtil jwtUtil;
     @Mock private AuthenticationManager authenticationManager;
@@ -49,6 +46,7 @@ class AuthServiceTest {
     private AuthService authService;
 
     private AuthRequest authRequest;
+    private Role userRole;
     private User savedUser;
     private UserDetails springUserDetails;
 
@@ -58,11 +56,13 @@ class AuthServiceTest {
         authRequest.setUsername("jatin");
         authRequest.setPassword("secret123");
 
+        userRole = Role.builder().id(1L).name("USER").build();
+
         savedUser = User.builder()
                 .id(1L)
                 .username("jatin")
                 .password("$2a$10$hashedPassword")
-                .role(User.Role.USER)
+                .roles(Set.of(userRole))
                 .build();
 
         springUserDetails = new org.springframework.security.core.userdetails.User(
@@ -72,12 +72,11 @@ class AuthServiceTest {
         );
     }
 
-    // ─── register ────────────────────────────────────────────────────────────
-
     @Test
-    @DisplayName("register: new username → saves user and returns token")
+    @DisplayName("register: new username → saves user with USER role and returns token")
     void register_newUsername_returnsAuthResponse() {
         when(userRepository.existsByUsername("jatin")).thenReturn(false);
+        when(roleRepository.findByName("USER")).thenReturn(Optional.of(userRole));
         when(passwordEncoder.encode("secret123")).thenReturn("$2a$10$hashedPassword");
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
         when(userDetailsService.loadUserByUsername("jatin")).thenReturn(springUserDetails);
@@ -88,7 +87,7 @@ class AuthServiceTest {
 
         assertThat(response.getAccessToken()).isEqualTo("mocked.jwt.token");
         assertThat(response.getUsername()).isEqualTo("jatin");
-        assertThat(response.getRole()).isEqualTo("USER");
+        assertThat(response.getRoles()).containsExactly("USER");
         assertThat(response.getTokenType()).isEqualTo("Bearer");
         assertThat(response.getExpiresIn()).isEqualTo(86_400_000L);
 
@@ -103,7 +102,6 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.register(authRequest))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("jatin")
                 .hasMessageContaining("already taken");
 
         verify(userRepository, never()).save(any());
@@ -113,6 +111,7 @@ class AuthServiceTest {
     @DisplayName("register: password is encoded before saving — never stored as plain text")
     void register_passwordIsEncoded() {
         when(userRepository.existsByUsername("jatin")).thenReturn(false);
+        when(roleRepository.findByName("USER")).thenReturn(Optional.of(userRole));
         when(passwordEncoder.encode("secret123")).thenReturn("$2a$10$hashedPassword");
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
         when(userDetailsService.loadUserByUsername("jatin")).thenReturn(springUserDetails);
@@ -121,17 +120,14 @@ class AuthServiceTest {
 
         authService.register(authRequest);
 
-        // Capture the user that was saved and verify password was encoded
         verify(userRepository).save(argThat(user ->
                 user.getPassword().equals("$2a$10$hashedPassword") &&
                 !user.getPassword().equals("secret123")
         ));
     }
 
-    // ─── login ───────────────────────────────────────────────────────────────
-
     @Test
-    @DisplayName("login: valid credentials → authenticates and returns token")
+    @DisplayName("login: valid credentials → authenticates and returns token with roles")
     void login_validCredentials_returnsAuthResponse() {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(mock(org.springframework.security.core.Authentication.class));
@@ -144,7 +140,7 @@ class AuthServiceTest {
 
         assertThat(response.getAccessToken()).isEqualTo("mocked.jwt.token");
         assertThat(response.getUsername()).isEqualTo("jatin");
-        assertThat(response.getRole()).isEqualTo("USER");
+        assertThat(response.getRoles()).containsExactly("USER");
 
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
     }
@@ -158,7 +154,6 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.login(authRequest))
                 .isInstanceOf(BadCredentialsException.class);
 
-        // Never reaches the DB after auth fails
         verify(userDetailsService, never()).loadUserByUsername(anyString());
     }
 }

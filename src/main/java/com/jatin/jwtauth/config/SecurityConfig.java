@@ -46,13 +46,15 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
 
             // Define which endpoints are public vs protected
-            // Layer 1 of RBAC: URL-level rules (Layer 2 is @PreAuthorize on each method)
+            // Layer 1 of RBAC: URL-level rules (Layer 2 is @PreAuthorize on each controller method)
+            // With dynamic roles, fine-grained role checks live ONLY in @PreAuthorize.
+            // URL rules here only enforce authentication and broad path-level ADMIN guard.
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()               // public
                 .requestMatchers("/actuator/health").permitAll()           // public
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")         // ADMIN only
-                .requestMatchers("/api/moderator/**").hasAnyRole("MODERATOR", "ADMIN")  // MODERATOR+
-                .requestMatchers("/api/user/**").authenticated()           // any logged-in user
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")         // ADMIN only — URL guard
+                .requestMatchers("/api/moderator/**").hasAnyRole("MODERATOR", "ADMIN")
+                .requestMatchers("/api/user/**").authenticated()
                 .anyRequest().authenticated()
             )
 

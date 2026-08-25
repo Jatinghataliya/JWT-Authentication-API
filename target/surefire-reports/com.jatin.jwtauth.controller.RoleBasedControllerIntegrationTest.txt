@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest
 -------------------------------------------------------------------------------
-Tests run: 18, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.240 s -- in com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest
+Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.144 s -- in com.jatin.jwtauth.controller.RoleBasedControllerIntegrationTest

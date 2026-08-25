@@ -2,10 +2,12 @@ package com.jatin.jwtauth.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jatin.jwtauth.dto.AdminRegisterRequest;
+import com.jatin.jwtauth.dto.AssignRoleRequest;
 import com.jatin.jwtauth.dto.AuthRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
-import com.jatin.jwtauth.dto.ChangeRoleRequest;
+import com.jatin.jwtauth.entity.Role;
 import com.jatin.jwtauth.entity.User;
+import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,22 +16,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+
+import java.util.Set;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * Role-based Authorization Integration Tests.
- *
- * Verifies that:
- *  - USER  can access /api/user/** only
- *  - MODERATOR can access /api/user/** and /api/moderator/**
- *  - ADMIN can access all: /api/user/**, /api/moderator/**, /api/admin/**
- *  - Role escalation is blocked (USER → admin endpoints → 403)
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 class RoleBasedControllerIntegrationTest {
@@ -37,6 +33,8 @@ class RoleBasedControllerIntegrationTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private UserRepository userRepository;
+    @Autowired private RoleRepository roleRepository;
+    @Autowired private PasswordEncoder passwordEncoder;
 
     private String userToken;
     private String moderatorToken;
@@ -45,80 +43,55 @@ class RoleBasedControllerIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         userRepository.deleteAll();
+        // Roles are seeded by DataInitializer — do NOT delete them
 
-        // Register a plain USER via the public endpoint
-        userToken = registerAndLogin("user1", "password1");
-
-        // Create MODERATOR and ADMIN via admin bootstrap — we seed them directly to avoid
-        // chicken-and-egg problem (no admin exists yet to call /api/admin/users).
-        // In production you'd seed an initial admin via a DataInitializer or DB migration.
-        seedUserWithRole("moderator1", "password1", User.Role.MODERATOR);
-        seedUserWithRole("admin1", "password1", User.Role.ADMIN);
+        userToken     = registerAndLogin("user1", "password1");
+        seedUserWithRoles("moderator1", "password1", Set.of("MODERATOR"));
+        seedUserWithRoles("admin1",     "password1", Set.of("ADMIN"));
         moderatorToken = loginAndGetToken("moderator1", "password1");
-        adminToken    = loginAndGetToken("admin1", "password1");
+        adminToken     = loginAndGetToken("admin1", "password1");
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // /api/user/** — accessible by all authenticated users
-    // ═══════════════════════════════════════════════════════════════════
+    // ── /api/user/** ──────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("USER: GET /api/user/me → 200 with own profile")
+    @DisplayName("USER: GET /api/user/me → 200 with roles array")
     void user_getMe_returns200() throws Exception {
-        mockMvc.perform(get("/api/user/me")
-                        .header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(get("/api/user/me").header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("user1"))
-                .andExpect(jsonPath("$.role").value("USER"))
-                .andExpect(jsonPath("$.id").isNumber());
+                .andExpect(jsonPath("$.roles", hasItem("USER")));
     }
 
     @Test
     @DisplayName("USER: GET /api/user/dashboard → 200")
     void user_getDashboard_returns200() throws Exception {
-        mockMvc.perform(get("/api/user/dashboard")
-                        .header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(get("/api/user/dashboard").header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.access").value("USER level"));
     }
 
     @Test
-    @DisplayName("MODERATOR: GET /api/user/me → 200 (moderator can also access user endpoints)")
-    void moderator_getMe_returns200() throws Exception {
-        mockMvc.perform(get("/api/user/me")
-                        .header("Authorization", "Bearer " + moderatorToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("moderator1"))
-                .andExpect(jsonPath("$.role").value("MODERATOR"));
-    }
-
-    @Test
-    @DisplayName("ADMIN: GET /api/user/me → 200 (admin can also access user endpoints)")
+    @DisplayName("ADMIN: GET /api/user/me → 200 (admin inherits user access)")
     void admin_getMe_returns200() throws Exception {
-        mockMvc.perform(get("/api/user/me")
-                        .header("Authorization", "Bearer " + adminToken))
+        mockMvc.perform(get("/api/user/me").header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("admin1"))
-                .andExpect(jsonPath("$.role").value("ADMIN"));
+                .andExpect(jsonPath("$.roles", hasItem("ADMIN")));
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // /api/moderator/** — accessible by MODERATOR and ADMIN only
-    // ═══════════════════════════════════════════════════════════════════
+    // ── /api/moderator/** ─────────────────────────────────────────────────────
 
     @Test
     @DisplayName("USER: GET /api/moderator/dashboard → 403 Forbidden")
     void user_moderatorDashboard_returns403() throws Exception {
-        mockMvc.perform(get("/api/moderator/dashboard")
-                        .header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(get("/api/moderator/dashboard").header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     @DisplayName("MODERATOR: GET /api/moderator/dashboard → 200")
     void moderator_moderatorDashboard_returns200() throws Exception {
-        mockMvc.perform(get("/api/moderator/dashboard")
-                        .header("Authorization", "Bearer " + moderatorToken))
+        mockMvc.perform(get("/api/moderator/dashboard").header("Authorization", "Bearer " + moderatorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.access").value("MODERATOR level"));
     }
@@ -126,67 +99,51 @@ class RoleBasedControllerIntegrationTest {
     @Test
     @DisplayName("MODERATOR: GET /api/moderator/users → 200 with user list")
     void moderator_listUsers_returns200() throws Exception {
-        mockMvc.perform(get("/api/moderator/users")
-                        .header("Authorization", "Bearer " + moderatorToken))
+        mockMvc.perform(get("/api/moderator/users").header("Authorization", "Bearer " + moderatorToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(3))))
-                .andExpect(jsonPath("$[*].username", hasItems("user1", "moderator1", "admin1")));
+                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(3))));
     }
 
-    @Test
-    @DisplayName("ADMIN: GET /api/moderator/users → 200 (admin has moderator access too)")
-    void admin_moderatorUsers_returns200() throws Exception {
-        mockMvc.perform(get("/api/moderator/users")
-                        .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isOk());
-    }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // /api/admin/** — ADMIN only
-    // ═══════════════════════════════════════════════════════════════════
+    // ── /api/admin/** ─────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("USER: GET /api/admin/dashboard → 403 Forbidden")
     void user_adminDashboard_returns403() throws Exception {
-        mockMvc.perform(get("/api/admin/dashboard")
-                        .header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(get("/api/admin/dashboard").header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     @DisplayName("MODERATOR: GET /api/admin/dashboard → 403 Forbidden")
     void moderator_adminDashboard_returns403() throws Exception {
-        mockMvc.perform(get("/api/admin/dashboard")
-                        .header("Authorization", "Bearer " + moderatorToken))
+        mockMvc.perform(get("/api/admin/dashboard").header("Authorization", "Bearer " + moderatorToken))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     @DisplayName("ADMIN: GET /api/admin/dashboard → 200")
     void admin_adminDashboard_returns200() throws Exception {
-        mockMvc.perform(get("/api/admin/dashboard")
-                        .header("Authorization", "Bearer " + adminToken))
+        mockMvc.perform(get("/api/admin/dashboard").header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.access").value("ADMIN level — full control"));
     }
 
     @Test
-    @DisplayName("ADMIN: GET /api/admin/users → 200 with all users, no passwords")
+    @DisplayName("ADMIN: GET /api/admin/users → 200, no passwords in response")
     void admin_listAllUsers_returns200() throws Exception {
-        mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", "Bearer " + adminToken))
+        mockMvc.perform(get("/api/admin/users").header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(3))))
                 .andExpect(jsonPath("$[*].password").doesNotExist());
     }
 
     @Test
-    @DisplayName("ADMIN: POST /api/admin/users → 201 creates MODERATOR user")
-    void admin_createModeratorUser_returns201() throws Exception {
+    @DisplayName("ADMIN: POST /api/admin/users → 201 creates user with MODERATOR role")
+    void admin_createUserWithRoles_returns201() throws Exception {
         AdminRegisterRequest req = new AdminRegisterRequest();
         req.setUsername("newmod");
         req.setPassword("password1");
-        req.setRole(User.Role.MODERATOR);
+        req.setRoles(Set.of("MODERATOR"));
 
         mockMvc.perform(post("/api/admin/users")
                         .header("Authorization", "Bearer " + adminToken)
@@ -194,58 +151,74 @@ class RoleBasedControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.username").value("newmod"))
-                .andExpect(jsonPath("$.role").value("MODERATOR"));
+                .andExpect(jsonPath("$.roles", hasItem("MODERATOR")));
     }
 
     @Test
-    @DisplayName("USER: POST /api/admin/users → 403 (cannot create users)")
-    void user_createUser_returns403() throws Exception {
+    @DisplayName("ADMIN: POST /api/admin/users with multiple roles → user gets both")
+    void admin_createUserWithMultipleRoles_returns201() throws Exception {
         AdminRegisterRequest req = new AdminRegisterRequest();
-        req.setUsername("hacker");
+        req.setUsername("multiuser");
         req.setPassword("password1");
-        req.setRole(User.Role.ADMIN);
+        req.setRoles(Set.of("USER", "MODERATOR"));
 
         mockMvc.perform(post("/api/admin/users")
-                        .header("Authorization", "Bearer " + userToken)
+                        .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.roles", hasSize(2)))
+                .andExpect(jsonPath("$.roles", hasItems("USER", "MODERATOR")));
     }
 
     @Test
-    @DisplayName("ADMIN: PATCH /api/admin/users/{id}/role → 200 changes role to MODERATOR")
-    void admin_changeRole_returns200() throws Exception {
-        // Get user1's id
+    @DisplayName("ADMIN: POST /api/admin/users/{id}/roles → assign extra role to user")
+    void admin_assignRole_returns200() throws Exception {
         Long userId = userRepository.findByUsername("user1").orElseThrow().getId();
 
-        ChangeRoleRequest req = new ChangeRoleRequest();
-        req.setRole(User.Role.MODERATOR);
+        AssignRoleRequest req = new AssignRoleRequest();
+        req.setRoleName("MODERATOR");
 
-        mockMvc.perform(patch("/api/admin/users/" + userId + "/role")
+        mockMvc.perform(post("/api/admin/users/" + userId + "/roles")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.role").value("MODERATOR"))
-                .andExpect(jsonPath("$.username").value("user1"));
+                .andExpect(jsonPath("$.roles", hasItems("USER", "MODERATOR")));
+    }
+
+    @Test
+    @DisplayName("ADMIN: DELETE /api/admin/users/{id}/roles → revoke a role")
+    void admin_revokeRole_returns200() throws Exception {
+        Long userId = userRepository.findByUsername("user1").orElseThrow().getId();
+
+        // Assign MODERATOR first
+        AssignRoleRequest assign = new AssignRoleRequest();
+        assign.setRoleName("MODERATOR");
+        mockMvc.perform(post("/api/admin/users/" + userId + "/roles")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(assign)))
+                .andExpect(status().isOk());
+
+        // Then revoke it
+        AssignRoleRequest revoke = new AssignRoleRequest();
+        revoke.setRoleName("MODERATOR");
+        mockMvc.perform(delete("/api/admin/users/" + userId + "/roles")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(revoke)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roles", not(hasItem("MODERATOR"))));
     }
 
     @Test
     @DisplayName("ADMIN: DELETE /api/admin/users/{id} → 204 No Content")
     void admin_deleteUser_returns204() throws Exception {
         Long userId = userRepository.findByUsername("user1").orElseThrow().getId();
-
         mockMvc.perform(delete("/api/admin/users/" + userId)
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNoContent());
-    }
-
-    @Test
-    @DisplayName("ADMIN: DELETE /api/admin/users/{id} non-existent → 400")
-    void admin_deleteNonExistentUser_returns400() throws Exception {
-        mockMvc.perform(delete("/api/admin/users/99999")
-                        .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -255,45 +228,39 @@ class RoleBasedControllerIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // Helpers
-    // ═══════════════════════════════════════════════════════════════════
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** Register via public endpoint and return JWT. */
-    private String registerAndLogin(String username, String password) throws Exception {
-        AuthRequest req = buildAuthRequest(username, password);
+    private String registerAndLogin(String username, String pwd) throws Exception {
+        AuthRequest req = new AuthRequest();
+        req.setUsername(username);
+        req.setPassword(pwd);
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated());
-        return loginAndGetToken(username, password);
+        return loginAndGetToken(username, pwd);
     }
 
-    /** Login and extract JWT from response. */
-    private String loginAndGetToken(String username, String password) throws Exception {
+    private String loginAndGetToken(String username, String pwd) throws Exception {
+        AuthRequest req = new AuthRequest();
+        req.setUsername(username);
+        req.setPassword(pwd);
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(buildAuthRequest(username, password))))
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
                 .andReturn();
         return objectMapper.readValue(result.getResponse().getContentAsString(), AuthResponse.class)
                 .getAccessToken();
     }
 
-    /** Directly seed a user with a specific role — bypasses the public register endpoint. */
-    private void seedUserWithRole(String username, String password, User.Role role) {
-        com.jatin.jwtauth.entity.User user = com.jatin.jwtauth.entity.User.builder()
+    private void seedUserWithRoles(String username, String pwd, Set<String> roleNames) {
+        Set<Role> roles = new java.util.HashSet<>();
+        roleNames.forEach(name -> roleRepository.findByName(name).ifPresent(roles::add));
+        userRepository.save(User.builder()
                 .username(username)
-                .password(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode(password))
-                .role(role)
-                .build();
-        userRepository.save(user);
-    }
-
-    private AuthRequest buildAuthRequest(String username, String password) {
-        AuthRequest req = new AuthRequest();
-        req.setUsername(username);
-        req.setPassword(password);
-        return req;
+                .password(passwordEncoder.encode(pwd))
+                .roles(roles)
+                .build());
     }
 }

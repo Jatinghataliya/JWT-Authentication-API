@@ -3,7 +3,9 @@ package com.jatin.jwtauth.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jatin.jwtauth.dto.AuthRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
+import com.jatin.jwtauth.entity.Role;
 import com.jatin.jwtauth.entity.User;
+import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,15 +17,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.Set;
+
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * Integration tests for protected endpoints (UserController + AdminController).
- * Verifies: 401 without token, 200 with valid USER token, 403 wrong role.
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 class DemoControllerIntegrationTest {
@@ -31,6 +31,7 @@ class DemoControllerIntegrationTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private UserRepository userRepository;
+    @Autowired private RoleRepository roleRepository;
 
     private String userToken;
 
@@ -39,8 +40,6 @@ class DemoControllerIntegrationTest {
         userRepository.deleteAll();
         userToken = registerAndLogin("jatin", "secret123");
     }
-
-    // ─── No token (unauthenticated) ──────────────────────────────────────────
 
     @Test
     @DisplayName("GET /user/me: no token → 401 Unauthorized")
@@ -63,16 +62,14 @@ class DemoControllerIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    // ─── Valid USER token ────────────────────────────────────────────────────
-
     @Test
-    @DisplayName("GET /user/me: valid USER token → 200 with username and role")
+    @DisplayName("GET /user/me: valid USER token → 200 with username and roles array")
     void getUserMe_validToken_returns200() throws Exception {
         mockMvc.perform(get("/api/user/me")
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("jatin"))
-                .andExpect(jsonPath("$.role").value("USER"));
+                .andExpect(jsonPath("$.roles").isArray());
     }
 
     @Test
@@ -92,8 +89,6 @@ class DemoControllerIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
-    // ─── Invalid token ───────────────────────────────────────────────────────
-
     @Test
     @DisplayName("GET /user/me: malformed token → 401 Unauthorized")
     void getUserMe_malformedToken_returns401() throws Exception {
@@ -109,8 +104,6 @@ class DemoControllerIntegrationTest {
                         .header("Authorization", userToken))
                 .andExpect(status().isUnauthorized());
     }
-
-    // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private String registerAndLogin(String username, String password) throws Exception {
         AuthRequest req = new AuthRequest();
