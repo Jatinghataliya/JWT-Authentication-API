@@ -8,6 +8,7 @@ import com.jatin.jwtauth.entity.User;
 import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import com.jatin.jwtauth.util.JwtUtil;
+import com.jatin.jwtauth.service.AuditService;
 import com.jatin.jwtauth.service.EmailVerificationService;
 import com.jatin.jwtauth.service.LoginAttemptService;
 import com.jatin.jwtauth.service.TokenBlacklistService;
@@ -50,6 +51,7 @@ class AuthServiceTest {
     @Mock private TokenBlacklistService tokenBlacklistService;
     @Mock private LoginAttemptService loginAttemptService;
     @Mock private EmailVerificationService emailVerificationService;
+    @Mock private AuditService auditService;
 
     @InjectMocks
     private AuthService authService;

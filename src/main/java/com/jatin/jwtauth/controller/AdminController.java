@@ -3,10 +3,12 @@ package com.jatin.jwtauth.controller;
 import com.jatin.jwtauth.dto.AdminRegisterRequest;
 import com.jatin.jwtauth.dto.AssignRoleRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
+import com.jatin.jwtauth.dto.AuditEventSummary;
 import com.jatin.jwtauth.dto.RoleRequest;
 import com.jatin.jwtauth.dto.RoleResponse;
 import com.jatin.jwtauth.dto.UserSummary;
 import com.jatin.jwtauth.service.AdminService;
+import com.jatin.jwtauth.service.AuditService;
 import com.jatin.jwtauth.service.LoginAttemptService;
 import com.jatin.jwtauth.service.RoleService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +35,7 @@ public class AdminController {
     private final AdminService adminService;
     private final RoleService roleService;
     private final LoginAttemptService loginAttemptService;
+    private final AuditService auditService;
 
     // ═══ Role Catalog ════════════════════════════════════════════════════════
 
@@ -152,5 +155,15 @@ public class AdminController {
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         adminService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ═══ Audit Log ═══════════════════════════════════════════════════════════
+
+    @Operation(summary = "Query the security audit log",
+               description = "Returns up to 100 most recent events. Optionally filter by username via ?username=xxx.")
+    @GetMapping("/audit")
+    public ResponseEntity<List<AuditEventSummary>> getAuditLog(
+            @RequestParam(required = false) String username) {
+        return ResponseEntity.ok(auditService.getEvents(username));
     }
 }

@@ -37,6 +37,7 @@ public class AuthService {
     private final TokenBlacklistService tokenBlacklistService;
     private final LoginAttemptService loginAttemptService;
     private final EmailVerificationService emailVerificationService;
+    private final AuditService auditService;
 
     /**
      * Register a new user.
@@ -63,6 +64,8 @@ public class AuthService {
 
         // If the user has an email set, send a verification link (no-op if null)
         emailVerificationService.generateAndSendToken(user.getUsername());
+
+        auditService.log(user.getUsername(), "REGISTER", "New user registered");
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getUsername());
@@ -93,11 +96,13 @@ public class AuthService {
         } catch (AuthenticationException ex) {
             // Record failure BEFORE re-throwing so the lock can trigger
             loginAttemptService.recordFailure(request.getUsername(), ipAddress);
+            auditService.log(request.getUsername(), "LOGIN_FAILURE", ipAddress, "Bad credentials");
             throw ex;
         }
 
         // Successful authentication — reset failure window
         loginAttemptService.recordSuccess(request.getUsername(), ipAddress);
+        auditService.log(request.getUsername(), "LOGIN_SUCCESS", ipAddress, null);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
         User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
@@ -135,6 +140,8 @@ public class AuthService {
 
         // 2. Delete the refresh token
         refreshTokenService.deleteByUsername(username);
+
+        auditService.log(username, "LOGOUT", null, "Access token blacklisted");
     }
 
     // ─── Private helpers ─────────────────────────────────────────────────────

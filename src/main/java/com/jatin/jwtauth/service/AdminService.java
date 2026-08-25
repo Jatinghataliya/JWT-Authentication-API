@@ -41,6 +41,7 @@ public class AdminService {
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final AuditService auditService;
 
     /** Create a user and assign the requested roles by name. */
     @Transactional
@@ -126,7 +127,9 @@ public class AdminService {
     public UserSummary disableUser(Long id) {
         User user = findUser(id);
         user.setEnabled(false);
-        return UserSummary.from(userRepository.save(user));
+        UserSummary result = UserSummary.from(userRepository.save(user));
+        auditService.log(user.getUsername(), "ACCOUNT_DISABLED", "Account disabled by admin");
+        return result;
     }
 
     /** Re-enable a previously disabled user account. */
@@ -134,7 +137,9 @@ public class AdminService {
     public UserSummary enableUser(Long id) {
         User user = findUser(id);
         user.setEnabled(true);
-        return UserSummary.from(userRepository.save(user));
+        UserSummary result = UserSummary.from(userRepository.save(user));
+        auditService.log(user.getUsername(), "ACCOUNT_ENABLED", "Account re-enabled by admin");
+        return result;
     }
 
     /**
@@ -146,7 +151,9 @@ public class AdminService {
         User user = findUser(id);
         user.setAccountNonLocked(false);
         user.setLockedAt(java.time.LocalDateTime.now());
-        return UserSummary.from(userRepository.save(user));
+        UserSummary result = UserSummary.from(userRepository.save(user));
+        auditService.log(user.getUsername(), "ACCOUNT_LOCKED", "Account locked by admin");
+        return result;
     }
 
     /** Unlock a previously locked user account and clear the lock timestamp. */
@@ -155,7 +162,9 @@ public class AdminService {
         User user = findUser(id);
         user.setAccountNonLocked(true);
         user.setLockedAt(null);
-        return UserSummary.from(userRepository.save(user));
+        UserSummary result = UserSummary.from(userRepository.save(user));
+        auditService.log(user.getUsername(), "ACCOUNT_UNLOCKED", "Account unlocked by admin");
+        return result;
     }
 
     /** Delete a user by id. Removes associated refresh token first to satisfy the FK. */
@@ -163,6 +172,7 @@ public class AdminService {
     public void deleteUser(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+        auditService.log(user.getUsername(), "ACCOUNT_DELETED", "Account deleted by admin");
         // Delete refresh token first (FK child before parent)
         refreshTokenRepository.findByUser(user).ifPresent(refreshTokenRepository::delete);
         userRepository.delete(user);
