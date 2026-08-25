@@ -19,7 +19,8 @@ server:
 
 jwt:
   secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
-  expiration: ${JWT_EXPIRATION_MS:86400000}   # 24 hours in milliseconds
+  expiration: ${JWT_EXPIRATION_MS:900000}          # 15 minutes in milliseconds (access token)
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION_MS:604800000}  # 7 days in milliseconds (refresh token)
 
 # ─── Spring Boot Actuator ─────────────────────────────────────────────────────
 management:

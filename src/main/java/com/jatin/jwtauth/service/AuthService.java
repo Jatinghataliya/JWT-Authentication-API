@@ -2,6 +2,7 @@ package com.jatin.jwtauth.service;
 
 import com.jatin.jwtauth.dto.AuthRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
+import com.jatin.jwtauth.entity.RefreshToken;
 import com.jatin.jwtauth.entity.Role;
 import com.jatin.jwtauth.entity.User;
 import com.jatin.jwtauth.repository.RoleRepository;
@@ -30,11 +31,12 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
+    private final RefreshTokenService refreshTokenService;
 
     /**
      * Register a new user.
      * Looks up the "USER" role from the DB (seeded by DataInitializer) and assigns it.
-     * This means no hardcoded enum — if the role is renamed in the DB, register still works.
+     * Issues both an access token and a refresh token on successful registration.
      */
     public AuthResponse register(AuthRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -54,10 +56,11 @@ public class AuthService {
         userRepository.save(user);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
-        return buildAuthResponse(userDetails, user.getRoles());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getUsername());
+        return buildAuthResponse(userDetails, user.getRoles(), refreshToken.getToken());
     }
 
-    /** Authenticate an existing user and return a fresh JWT. */
+    /** Authenticate an existing user and return a fresh access + refresh token pair. */
     public AuthResponse login(AuthRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -68,20 +71,41 @@ public class AuthService {
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
         User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
-
-        return buildAuthResponse(userDetails, user.getRoles());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getUsername());
+        return buildAuthResponse(userDetails, user.getRoles(), refreshToken.getToken());
     }
 
-    private AuthResponse buildAuthResponse(UserDetails userDetails, Set<Role> roles) {
+    /**
+     * Validate a refresh token and issue a new access token.
+     * The refresh token itself is NOT rotated here (kept simple).
+     * Rotation (issue new refresh token + invalidate old) can be added later.
+     */
+    public AuthResponse refreshAccessToken(String refreshTokenValue) {
+        RefreshToken refreshToken = refreshTokenService.verifyExpiration(refreshTokenValue);
+
+        User user = refreshToken.getUser();
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
+        return buildAuthResponse(userDetails, user.getRoles(), refreshToken.getToken());
+    }
+
+    /** Invalidate the refresh token — effective logout. */
+    public void logout(String username) {
+        refreshTokenService.deleteByUsername(username);
+    }
+
+    // ─── Private helpers ─────────────────────────────────────────────────────
+
+    private AuthResponse buildAuthResponse(UserDetails userDetails, Set<Role> roles, String refreshTokenValue) {
         Set<String> roleNames = roles.stream().map(Role::getName).collect(Collectors.toSet());
 
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("roles", roleNames);   // embed all role names in JWT
 
-        String token = jwtUtil.generateToken(extraClaims, userDetails);
+        String accessToken = jwtUtil.generateToken(extraClaims, userDetails);
 
         return AuthResponse.builder()
-                .accessToken(token)
+                .accessToken(accessToken)
+                .refreshToken(refreshTokenValue)
                 .tokenType("Bearer")
                 .expiresIn(jwtUtil.getExpirationMs())
                 .username(userDetails.getUsername())

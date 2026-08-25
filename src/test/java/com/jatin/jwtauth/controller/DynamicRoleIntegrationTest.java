@@ -7,6 +7,7 @@ import com.jatin.jwtauth.dto.AuthResponse;
 import com.jatin.jwtauth.dto.RoleRequest;
 import com.jatin.jwtauth.entity.Role;
 import com.jatin.jwtauth.entity.User;
+import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,7 @@ class DynamicRoleIntegrationTest {
     @Autowired private UserRepository userRepository;
     @Autowired private RoleRepository roleRepository;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private RefreshTokenRepository refreshTokenRepository;
 
     private String adminToken;
     private String userToken;
@@ -52,6 +54,7 @@ class DynamicRoleIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
         // Clean up any previously created dynamic roles (keep base roles)
         roleRepository.findByName("EDITOR").ifPresent(roleRepository::delete);

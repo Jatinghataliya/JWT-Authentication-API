@@ -5,6 +5,7 @@ import com.jatin.jwtauth.dto.AuthRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
 import com.jatin.jwtauth.entity.Role;
 import com.jatin.jwtauth.entity.User;
+import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,11 +33,13 @@ class DemoControllerIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private UserRepository userRepository;
     @Autowired private RoleRepository roleRepository;
+    @Autowired private RefreshTokenRepository refreshTokenRepository;
 
     private String userToken;
 
     @BeforeEach
     void setUp() throws Exception {
+        refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
         userToken = registerAndLogin("jatin", "secret123");
     }

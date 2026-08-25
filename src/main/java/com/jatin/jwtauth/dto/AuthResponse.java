@@ -7,6 +7,10 @@ import lombok.NoArgsConstructor;
 
 import java.util.Set;
 
+/**
+ * Returned on login/register/refresh.
+ * Now includes a refreshToken field alongside the short-lived accessToken.
+ */
 @Data
 @Builder
 @AllArgsConstructor
@@ -14,6 +18,7 @@ import java.util.Set;
 public class AuthResponse {
 
     private String accessToken;
+    private String refreshToken;
     private String tokenType;
     private long expiresIn;
     private String username;

@@ -7,6 +7,7 @@ import com.jatin.jwtauth.dto.AuthRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
 import com.jatin.jwtauth.entity.Role;
 import com.jatin.jwtauth.entity.User;
+import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +36,7 @@ class RoleBasedControllerIntegrationTest {
     @Autowired private UserRepository userRepository;
     @Autowired private RoleRepository roleRepository;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private RefreshTokenRepository refreshTokenRepository;
 
     private String userToken;
     private String moderatorToken;
@@ -42,6 +44,7 @@ class RoleBasedControllerIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
         // Roles are seeded by DataInitializer — do NOT delete them
 

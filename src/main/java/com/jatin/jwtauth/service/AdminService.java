@@ -6,6 +6,7 @@ import com.jatin.jwtauth.dto.AuthResponse;
 import com.jatin.jwtauth.dto.UserSummary;
 import com.jatin.jwtauth.entity.Role;
 import com.jatin.jwtauth.entity.User;
+import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import com.jatin.jwtauth.util.JwtUtil;
@@ -39,6 +40,7 @@ public class AdminService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     /** Create a user and assign the requested roles by name. */
     @Transactional
@@ -111,12 +113,14 @@ public class AdminService {
         return UserSummary.from(userRepository.save(user));
     }
 
-    /** Delete a user by id. */
+    /** Delete a user by id. Removes associated refresh token first to satisfy the FK. */
+    @Transactional
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new IllegalArgumentException("User not found with id: " + id);
-        }
-        userRepository.deleteById(id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+        // Delete refresh token first (FK child before parent)
+        refreshTokenRepository.findByUser(user).ifPresent(refreshTokenRepository::delete);
+        userRepository.delete(user);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
