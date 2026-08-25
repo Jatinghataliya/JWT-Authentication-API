@@ -71,6 +71,23 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    // ─── Email verification ───────────────────────────────────────────────────
+
+    /**
+     * Whether the user has verified their email address.
+     * false until they click the link sent on registration.
+     */
+    @Builder.Default
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
+    /**
+     * One-time UUID token sent in the verification email.
+     * Cleared to null once the email is successfully verified.
+     */
+    @Column(name = "verification_token", unique = true)
+    private String verificationToken;
+
     // ─── Account-status flags ─────────────────────────────────────────────────
 
     /**

@@ -1,4 +1,18 @@
 spring:
+  # ─── Mail (SMTP) ────────────────────────────────────────────────────────────
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:noreply@jwtauth.local}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/jwtauthdb}
     username: ${DB_USERNAME:postgres}
@@ -23,6 +37,10 @@ jwt:
   refresh-expiration: ${JWT_REFRESH_EXPIRATION_MS:604800000} # 7 days    (refresh token)
   blacklist:
     cleanup-interval-ms: ${JWT_BLACKLIST_CLEANUP_MS:3600000} # 1 hour    (purge expired JTIs)
+
+# ─── Application base URL (used in email links) ───────────────────────────────
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
 
 # ─── Brute-force protection ────────────────────────────────────────────────────
 security:

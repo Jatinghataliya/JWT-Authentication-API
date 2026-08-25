@@ -50,6 +50,7 @@ public class SecurityConfig {
             // With dynamic roles, fine-grained role checks live ONLY in @PreAuthorize.
             // URL rules here only enforce authentication and broad path-level ADMIN guard.
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/auth/resend-verification").authenticated() // requires token
                 .requestMatchers("/api/auth/**").permitAll()               // public — login, register, refresh
                 .requestMatchers("/actuator/**").permitAll()               // public — all actuator endpoints
                 .requestMatchers(                                          // public — Swagger UI + OpenAPI spec

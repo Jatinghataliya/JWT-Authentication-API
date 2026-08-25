@@ -24,6 +24,8 @@ public class UserSummary {
     private String lastName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    /** true once the user clicks the verification link sent on registration. */
+    private boolean emailVerified;
     /** false → account is disabled; admin must re-enable before user can log in. */
     private boolean enabled;
     /** false → account is locked (e.g. by brute-force protection or admin action). */
@@ -42,6 +44,7 @@ public class UserSummary {
                 .lastName(user.getLastName())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .emailVerified(user.isEmailVerified())
                 .enabled(user.isEnabled())
                 .accountNonLocked(user.isAccountNonLocked())
                 .lockedAt(user.getLockedAt())

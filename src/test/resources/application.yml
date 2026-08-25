@@ -5,6 +5,12 @@ spring:
     username: sa
     password:
 
+  mail:
+    host: localhost
+    port: 25
+    username: test
+    password: test
+
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -18,7 +24,15 @@ jwt:
   expiration: 900000
   refresh-expiration: 604800000
 
+app:
+  base-url: http://localhost:8080
+
 security:
   max-failed-attempts: 3       # low threshold for fast tests
   lockout-duration-minutes: 30
   attempt-cleanup-interval-ms: 3600000
+
+management:
+  health:
+    mail:
+      enabled: false           # disable mail health check — no real SMTP in tests

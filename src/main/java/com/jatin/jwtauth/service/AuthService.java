@@ -36,11 +36,13 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final TokenBlacklistService tokenBlacklistService;
     private final LoginAttemptService loginAttemptService;
+    private final EmailVerificationService emailVerificationService;
 
     /**
      * Register a new user.
      * Looks up the "USER" role from the DB (seeded by DataInitializer) and assigns it.
      * Issues both an access token and a refresh token on successful registration.
+     * If the user provided an email, sends a verification email asynchronously.
      */
     public AuthResponse register(AuthRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -58,6 +60,9 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
+
+        // If the user has an email set, send a verification link (no-op if null)
+        emailVerificationService.generateAndSendToken(user.getUsername());
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getUsername());

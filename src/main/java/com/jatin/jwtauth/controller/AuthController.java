@@ -4,6 +4,7 @@ import com.jatin.jwtauth.dto.AuthRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
 import com.jatin.jwtauth.dto.RefreshTokenRequest;
 import com.jatin.jwtauth.service.AuthService;
+import com.jatin.jwtauth.service.EmailVerificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final EmailVerificationService emailVerificationService;
 
     @Operation(summary = "Register a new user",
                description = "Creates a new account with the USER role and returns an access + refresh token pair immediately.")
@@ -69,6 +71,33 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         return ResponseEntity.ok(authService.refreshAccessToken(request.getRefreshToken()));
+    }
+
+    @Operation(summary = "Verify email address",
+               description = "Confirms the email address using the one-time token sent on registration. Token is consumed after first use.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Email verified successfully"),
+        @ApiResponse(responseCode = "400", description = "Token unknown or already used", content = @Content)
+    })
+    @GetMapping("/verify")
+    public ResponseEntity<java.util.Map<String, String>> verifyEmail(
+            @org.springframework.web.bind.annotation.RequestParam String token) {
+        emailVerificationService.verifyToken(token);
+        return ResponseEntity.ok(java.util.Map.of("message", "Email verified successfully"));
+    }
+
+    @Operation(summary = "Resend verification email",
+               description = "Generates a fresh token and re-sends the verification email. Requires a valid access token.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Verification email resent"),
+        @ApiResponse(responseCode = "400", description = "No email on file or already verified", content = @Content)
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/resend-verification")
+    public ResponseEntity<Void> resendVerification(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        emailVerificationService.resendVerification(userDetails.getUsername());
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Logout",
