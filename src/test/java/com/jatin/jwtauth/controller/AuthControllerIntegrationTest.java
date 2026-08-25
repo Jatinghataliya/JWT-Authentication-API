@@ -3,6 +3,7 @@ package com.jatin.jwtauth.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jatin.jwtauth.dto.AuthRequest;
 import com.jatin.jwtauth.dto.RefreshTokenRequest;
+import com.jatin.jwtauth.repository.BlacklistedTokenRepository;
 import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,10 +28,11 @@ class AuthControllerIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private UserRepository userRepository;
     @Autowired private RefreshTokenRepository refreshTokenRepository;
+    @Autowired private BlacklistedTokenRepository blacklistedTokenRepository;
 
     @BeforeEach
     void cleanDb() {
-        // Delete child table first to respect the FK constraint
+        blacklistedTokenRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
     }
@@ -179,7 +181,7 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /logout: valid Bearer token → 204 No Content, refresh token deleted")
+    @DisplayName("POST /logout: valid Bearer token → 204 No Content, token blacklisted")
     void logout_validToken_returns204() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -193,6 +195,30 @@ class AuthControllerIntegrationTest {
         mockMvc.perform(post("/api/auth/logout")
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("POST /logout then use same access token → 401 Token has been revoked")
+    void logout_thenUseOldToken_returns401() throws Exception {
+        // 1. Register and get both tokens
+        MvcResult result = mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildRequest("jatin", "secret123"))))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        String accessToken = objectMapper.readTree(body).get("accessToken").asText();
+
+        // 2. Logout — blacklists the access token
+        mockMvc.perform(post("/api/auth/logout")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNoContent());
+
+        // 3. Try to use the same access token on a protected endpoint — must be rejected
+        mockMvc.perform(post("/api/auth/logout")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isUnauthorized());
     }
 
     private AuthRequest buildRequest(String username, String password) {

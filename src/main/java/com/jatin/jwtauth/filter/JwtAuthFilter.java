@@ -1,5 +1,6 @@
 package com.jatin.jwtauth.filter;
 
+import com.jatin.jwtauth.service.TokenBlacklistService;
 import com.jatin.jwtauth.util.JwtUtil;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -24,9 +25,10 @@ import java.io.IOException;
  * Key learning steps:
  *  1. Read the "Authorization: Bearer <token>" header.
  *  2. Extract username from the token using JwtUtil.
- *  3. Load UserDetails from DB.
- *  4. Validate the token against the loaded UserDetails.
- *  5. Set Authentication in the SecurityContext so Spring Security
+ *  3. Check the token's JTI against the blacklist — reject if revoked.
+ *  4. Load UserDetails from DB.
+ *  5. Validate the token against the loaded UserDetails.
+ *  6. Set Authentication in the SecurityContext so Spring Security
  *     treats the request as authenticated — no session needed.
  */
 @Component
@@ -35,6 +37,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String AUTH_HEADER = "Authorization";
@@ -60,13 +63,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         try {
             final String username = jwtUtil.extractUsername(jwt);
 
-            // 3. Only authenticate if not already set in context
+            // 3. Check JTI blacklist — token was explicitly revoked (e.g. logout)
+            final String jti = jwtUtil.extractJti(jwt);
+            if (tokenBlacklistService.isBlacklisted(jti)) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Token has been revoked\"}");
+                return;
+            }
+
+            // 4. Only authenticate if not already set in context
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // 4. Validate token
+                // 5. Validate token (signature + expiry)
                 if (jwtUtil.isTokenValid(jwt, userDetails)) {
-                    // 5. Build authentication token and store in SecurityContext
+                    // 6. Build authentication token and store in SecurityContext
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
                                     userDetails,

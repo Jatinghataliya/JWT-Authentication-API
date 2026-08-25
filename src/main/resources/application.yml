@@ -19,8 +19,10 @@ server:
 
 jwt:
   secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
-  expiration: ${JWT_EXPIRATION_MS:900000}          # 15 minutes in milliseconds (access token)
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION_MS:604800000}  # 7 days in milliseconds (refresh token)
+  expiration: ${JWT_EXPIRATION_MS:900000}                    # 15 minutes (access token)
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION_MS:604800000} # 7 days    (refresh token)
+  blacklist:
+    cleanup-interval-ms: ${JWT_BLACKLIST_CLEANUP_MS:3600000} # 1 hour    (purge expired JTIs)
 
 # ─── Spring Boot Actuator ─────────────────────────────────────────────────────
 management:

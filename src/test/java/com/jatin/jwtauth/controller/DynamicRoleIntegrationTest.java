@@ -7,6 +7,7 @@ import com.jatin.jwtauth.dto.AuthResponse;
 import com.jatin.jwtauth.dto.RoleRequest;
 import com.jatin.jwtauth.entity.Role;
 import com.jatin.jwtauth.entity.User;
+import com.jatin.jwtauth.repository.BlacklistedTokenRepository;
 import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
@@ -47,6 +48,7 @@ class DynamicRoleIntegrationTest {
     @Autowired private RoleRepository roleRepository;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private RefreshTokenRepository refreshTokenRepository;
+    @Autowired private BlacklistedTokenRepository blacklistedTokenRepository;
 
     private String adminToken;
     private String userToken;
@@ -54,6 +56,7 @@ class DynamicRoleIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        blacklistedTokenRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
         // Clean up any previously created dynamic roles (keep base roles)

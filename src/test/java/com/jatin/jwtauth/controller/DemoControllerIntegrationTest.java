@@ -5,6 +5,7 @@ import com.jatin.jwtauth.dto.AuthRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
 import com.jatin.jwtauth.entity.Role;
 import com.jatin.jwtauth.entity.User;
+import com.jatin.jwtauth.repository.BlacklistedTokenRepository;
 import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
@@ -34,11 +35,13 @@ class DemoControllerIntegrationTest {
     @Autowired private UserRepository userRepository;
     @Autowired private RoleRepository roleRepository;
     @Autowired private RefreshTokenRepository refreshTokenRepository;
+    @Autowired private BlacklistedTokenRepository blacklistedTokenRepository;
 
     private String userToken;
 
     @BeforeEach
     void setUp() throws Exception {
+        blacklistedTokenRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
         userToken = registerAndLogin("jatin", "secret123");

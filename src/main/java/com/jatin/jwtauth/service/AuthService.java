@@ -15,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,6 +33,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
     private final RefreshTokenService refreshTokenService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     /**
      * Register a new user.
@@ -88,8 +90,22 @@ public class AuthService {
         return buildAuthResponse(userDetails, user.getRoles(), refreshToken.getToken());
     }
 
-    /** Invalidate the refresh token — effective logout. */
-    public void logout(String username) {
+    /**
+     * Full logout:
+     *  1. Blacklist the current access token's JTI so it is immediately rejected
+     *     even before its 15-minute natural expiry.
+     *  2. Delete the refresh token so the user cannot silently re-issue tokens.
+     *
+     * @param accessToken the raw JWT string from the Authorization header
+     * @param username    the authenticated user's username
+     */
+    @Transactional
+    public void logout(String accessToken, String username) {
+        // 1. Blacklist the access token by its JTI
+        String jti = jwtUtil.extractJti(accessToken);
+        tokenBlacklistService.blacklist(jti, jwtUtil.extractExpirationInstant(accessToken));
+
+        // 2. Delete the refresh token
         refreshTokenService.deleteByUsername(username);
     }
 

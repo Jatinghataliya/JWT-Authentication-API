@@ -69,12 +69,17 @@ public class AuthController {
     }
 
     @Operation(summary = "Logout",
-               description = "Invalidates the current user's refresh token. The short-lived access token naturally expires on its own.")
-    @ApiResponse(responseCode = "204", description = "Logged out — refresh token invalidated")
+               description = "Blacklists the current access token (immediately revoked) and deletes the refresh token. Both tokens become invalid.")
+    @ApiResponse(responseCode = "204", description = "Logged out — access token blacklisted, refresh token deleted")
     @SecurityRequirement(name = "bearerAuth")   // override class-level @SecurityRequirements — this one needs a token
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@AuthenticationPrincipal UserDetails userDetails) {
-        authService.logout(userDetails.getUsername());
+    public ResponseEntity<Void> logout(
+            @AuthenticationPrincipal UserDetails userDetails,
+            jakarta.servlet.http.HttpServletRequest request) {
+        // Extract the raw JWT from the Authorization header to blacklist its JTI
+        String authHeader = request.getHeader("Authorization");
+        String accessToken = authHeader.substring("Bearer ".length());
+        authService.logout(accessToken, userDetails.getUsername());
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,9 +1,9 @@
 package com.jatin.jwtauth.filter;
 
+import com.jatin.jwtauth.service.TokenBlacklistService;
 import com.jatin.jwtauth.util.JwtUtil;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,13 +30,15 @@ import static org.mockito.Mockito.*;
  * Unit tests for JwtAuthFilter.
  *
  * Uses Spring's MockHttpServletRequest/Response — no web server needed.
- * Tests cover: missing header, invalid token, valid token, already-authenticated context.
+ * Tests cover: missing header, invalid token, blacklisted token, valid token,
+ * already-authenticated context.
  */
 @ExtendWith(MockitoExtension.class)
 class JwtAuthFilterTest {
 
     @Mock private JwtUtil jwtUtil;
     @Mock private UserDetailsService userDetailsService;
+    @Mock private TokenBlacklistService tokenBlacklistService;
     @Mock private FilterChain filterChain;
 
     @InjectMocks
@@ -86,14 +88,35 @@ class JwtAuthFilterTest {
         verifyNoInteractions(jwtUtil);
     }
 
+    // ─── Blacklisted token ───────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("doFilterInternal: blacklisted JTI → 401 Unauthorized, chain not invoked")
+    void filter_blacklistedToken_returns401() throws Exception {
+        request.addHeader("Authorization", "Bearer revoked.jwt.token");
+
+        when(jwtUtil.extractUsername("revoked.jwt.token")).thenReturn("jatin");
+        when(jwtUtil.extractJti("revoked.jwt.token")).thenReturn("jti-revoked-uuid");
+        when(tokenBlacklistService.isBlacklisted("jti-revoked-uuid")).thenReturn(true);
+
+        jwtAuthFilter.doFilterInternal(request, response, filterChain);
+
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
+        assertThat(response.getContentAsString()).contains("Token has been revoked");
+        verify(filterChain, never()).doFilter(any(), any());
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
     // ─── Valid token ─────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("doFilterInternal: valid Bearer token → sets authentication in SecurityContext")
+    @DisplayName("doFilterInternal: valid Bearer token, not blacklisted → sets authentication in SecurityContext")
     void filter_validToken_setsAuthentication() throws Exception {
         request.addHeader("Authorization", "Bearer valid.jwt.token");
 
         when(jwtUtil.extractUsername("valid.jwt.token")).thenReturn("jatin");
+        when(jwtUtil.extractJti("valid.jwt.token")).thenReturn("jti-valid-uuid");
+        when(tokenBlacklistService.isBlacklisted("jti-valid-uuid")).thenReturn(false);
         when(userDetailsService.loadUserByUsername("jatin")).thenReturn(userDetails);
         when(jwtUtil.isTokenValid("valid.jwt.token", userDetails)).thenReturn(true);
 
@@ -128,6 +151,8 @@ class JwtAuthFilterTest {
         request.addHeader("Authorization", "Bearer expired.token");
 
         when(jwtUtil.extractUsername("expired.token")).thenReturn("jatin");
+        when(jwtUtil.extractJti("expired.token")).thenReturn("jti-expired-uuid");
+        when(tokenBlacklistService.isBlacklisted("jti-expired-uuid")).thenReturn(false);
         when(userDetailsService.loadUserByUsername("jatin")).thenReturn(userDetails);
         when(jwtUtil.isTokenValid("expired.token", userDetails)).thenReturn(false);
 
@@ -144,8 +169,11 @@ class JwtAuthFilterTest {
     void filter_alreadyAuthenticated_skipsProcessing() throws Exception {
         request.addHeader("Authorization", "Bearer some.token");
 
-        // Pre-populate SecurityContext — simulates re-entrant or already-auth request
         when(jwtUtil.extractUsername("some.token")).thenReturn("jatin");
+        when(jwtUtil.extractJti("some.token")).thenReturn("jti-some-uuid");
+        when(tokenBlacklistService.isBlacklisted("jti-some-uuid")).thenReturn(false);
+
+        // Pre-populate SecurityContext — simulates re-entrant or already-auth request
         var existingAuth = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
                 "jatin", null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
         SecurityContextHolder.getContext().setAuthentication(existingAuth);
