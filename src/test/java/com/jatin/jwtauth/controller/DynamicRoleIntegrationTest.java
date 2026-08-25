@@ -13,6 +13,7 @@ import com.jatin.jwtauth.repository.PasswordResetTokenRepository;
 import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
+import com.jatin.jwtauth.service.RateLimitService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,7 @@ class DynamicRoleIntegrationTest {
     @Autowired private BlacklistedTokenRepository blacklistedTokenRepository;
     @Autowired private LoginAttemptRepository loginAttemptRepository;
     @Autowired private PasswordResetTokenRepository passwordResetTokenRepository;
+    @Autowired private RateLimitService rateLimitService;
     @MockBean  private JavaMailSender javaMailSender;
 
     private String adminToken;
@@ -63,6 +65,7 @@ class DynamicRoleIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        rateLimitService.reset();
         loginAttemptRepository.deleteAll();
         blacklistedTokenRepository.deleteAll();
         passwordResetTokenRepository.deleteAll();

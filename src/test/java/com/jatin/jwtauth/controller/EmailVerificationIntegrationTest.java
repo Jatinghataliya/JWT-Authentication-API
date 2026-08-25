@@ -9,6 +9,7 @@ import com.jatin.jwtauth.repository.LoginAttemptRepository;
 import com.jatin.jwtauth.repository.PasswordResetTokenRepository;
 import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.UserRepository;
+import com.jatin.jwtauth.service.RateLimitService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,7 @@ class EmailVerificationIntegrationTest {
     @Autowired private BlacklistedTokenRepository blacklistedTokenRepository;
     @Autowired private LoginAttemptRepository loginAttemptRepository;
     @Autowired private PasswordResetTokenRepository passwordResetTokenRepository;
+    @Autowired private RateLimitService rateLimitService;
 
     /** Mock the mail sender — no real SMTP needed in tests. */
     @MockBean private JavaMailSender javaMailSender;
@@ -54,6 +56,7 @@ class EmailVerificationIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        rateLimitService.reset();
         loginAttemptRepository.deleteAll();
         blacklistedTokenRepository.deleteAll();
         passwordResetTokenRepository.deleteAll();

@@ -28,24 +28,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
-server:
-  port: 8080
-
-jwt:
-  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
-  expiration: ${JWT_EXPIRATION_MS:900000}                    # 15 minutes (access token)
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION_MS:604800000} # 7 days    (refresh token)
-  blacklist:
-    cleanup-interval-ms: ${JWT_BLACKLIST_CLEANUP_MS:3600000} # 1 hour    (purge expired JTIs)
-
-# ─── Application base URL and OAuth2 redirect ────────────────────────────────
-app:
-  base-url: ${APP_BASE_URL:http://localhost:8080}
-  oauth2:
-    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/callback}
-
-# ─── OAuth2 Social Login (Google) — set real values via env vars in production ──
-spring:
+  # ─── OAuth2 Social Login (Google) — set real values via env vars in production ──
   security:
     oauth2:
       client:
@@ -57,6 +40,25 @@ spring:
         provider:
           google:
             issuer-uri: https://accounts.google.com
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  expiration: ${JWT_EXPIRATION_MS:900000}                    # 15 minutes (access token)
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION_MS:604800000} # 7 days    (refresh token)
+  blacklist:
+    cleanup-interval-ms: ${JWT_BLACKLIST_CLEANUP_MS:3600000} # 1 hour    (purge expired JTIs)
+
+# ─── Application settings ─────────────────────────────────────────────────────
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/callback}
+  rate-limit:
+    capacity: ${RATE_LIMIT_CAPACITY:20}          # max burst per IP
+    refill-per-minute: ${RATE_LIMIT_REFILL:10}   # tokens added per minute
 
 # ─── Brute-force protection ────────────────────────────────────────────────────
 security:

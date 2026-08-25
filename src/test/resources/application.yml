@@ -37,6 +37,9 @@ app:
   base-url: http://localhost:8080
   oauth2:
     redirect-uri: http://localhost:3000/oauth2/callback
+  rate-limit:
+    capacity: 5                # very low limit for fast rate-limit tests
+    refill-per-minute: 5
 
 security:
   max-failed-attempts: 3       # low threshold for fast tests
