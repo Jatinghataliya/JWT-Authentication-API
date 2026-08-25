@@ -1,0 +1,5 @@
+com\jatin\jwtauth\controller\DemoControllerIntegrationTest.class
+com\jatin\jwtauth\util\JwtUtilTest.class
+com\jatin\jwtauth\filter\JwtAuthFilterTest.class
+com\jatin\jwtauth\service\AuthServiceTest.class
+com\jatin\jwtauth\controller\AuthControllerIntegrationTest.class

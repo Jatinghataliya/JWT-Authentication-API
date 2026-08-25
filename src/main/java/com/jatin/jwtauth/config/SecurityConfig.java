@@ -1,6 +1,7 @@
 package com.jatin.jwtauth.config;
 
 import com.jatin.jwtauth.filter.JwtAuthFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,6 +55,15 @@ public class SecurityConfig {
             // STATELESS — no session, no cookies → horizontally scalable
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+
+            // Return 401 (not 403) for unauthenticated requests
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Authentication required\"}");
+                })
             )
 
             // Use our DaoAuthenticationProvider (BCrypt + UserDetailsService)
