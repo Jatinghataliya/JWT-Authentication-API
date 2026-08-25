@@ -57,4 +57,30 @@ public class EmailService {
         mailSender.send(message);
         log.info("EmailVerification: sent to {} for user '{}'", toEmail, username);
     }
+
+    /**
+     * Send a password-reset link to the user's registered email.
+     *
+     * @param toEmail   recipient address
+     * @param username  user's username (used in the message body)
+     * @param token     the one-time reset UUID
+     */
+    public void sendPasswordResetEmail(String toEmail, String username, String token) {
+        String link = baseUrl + "/api/auth/reset-password?token=" + token;
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromAddress);
+        message.setTo(toEmail);
+        message.setSubject("Reset your password — JWT Auth API");
+        message.setText(
+                "Hi " + username + ",\n\n" +
+                "We received a request to reset your password. Click the link below to choose a new one:\n\n" +
+                link + "\n\n" +
+                "This link expires in 1 hour. If you did not request a password reset you can safely ignore this email.\n\n" +
+                "— JWT Auth API"
+        );
+
+        mailSender.send(message);
+        log.info("PasswordReset: sent reset email to {} for user '{}'", toEmail, username);
+    }
 }

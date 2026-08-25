@@ -5,6 +5,7 @@ import com.jatin.jwtauth.dto.AuthRequest;
 import com.jatin.jwtauth.dto.RefreshTokenRequest;
 import com.jatin.jwtauth.repository.BlacklistedTokenRepository;
 import com.jatin.jwtauth.repository.LoginAttemptRepository;
+import com.jatin.jwtauth.repository.PasswordResetTokenRepository;
 import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,12 +34,14 @@ class AuthControllerIntegrationTest {
     @Autowired private RefreshTokenRepository refreshTokenRepository;
     @Autowired private BlacklistedTokenRepository blacklistedTokenRepository;
     @Autowired private LoginAttemptRepository loginAttemptRepository;
+    @Autowired private PasswordResetTokenRepository passwordResetTokenRepository;
     @MockBean  private JavaMailSender javaMailSender;
 
     @BeforeEach
     void cleanDb() {
         loginAttemptRepository.deleteAll();
         blacklistedTokenRepository.deleteAll();
+        passwordResetTokenRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
     }

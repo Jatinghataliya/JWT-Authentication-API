@@ -7,6 +7,7 @@ import com.jatin.jwtauth.entity.Role;
 import com.jatin.jwtauth.entity.User;
 import com.jatin.jwtauth.repository.BlacklistedTokenRepository;
 import com.jatin.jwtauth.repository.LoginAttemptRepository;
+import com.jatin.jwtauth.repository.PasswordResetTokenRepository;
 import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
@@ -40,6 +41,7 @@ class DemoControllerIntegrationTest {
     @Autowired private RefreshTokenRepository refreshTokenRepository;
     @Autowired private BlacklistedTokenRepository blacklistedTokenRepository;
     @Autowired private LoginAttemptRepository loginAttemptRepository;
+    @Autowired private PasswordResetTokenRepository passwordResetTokenRepository;
     @MockBean  private JavaMailSender javaMailSender;
 
     private String userToken;
@@ -48,6 +50,7 @@ class DemoControllerIntegrationTest {
     void setUp() throws Exception {
         loginAttemptRepository.deleteAll();
         blacklistedTokenRepository.deleteAll();
+        passwordResetTokenRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
         userToken = registerAndLogin("jatin", "secret123");

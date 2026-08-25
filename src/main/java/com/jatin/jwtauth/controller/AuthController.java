@@ -2,9 +2,12 @@ package com.jatin.jwtauth.controller;
 
 import com.jatin.jwtauth.dto.AuthRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
+import com.jatin.jwtauth.dto.ForgotPasswordRequest;
 import com.jatin.jwtauth.dto.RefreshTokenRequest;
+import com.jatin.jwtauth.dto.ResetPasswordRequest;
 import com.jatin.jwtauth.service.AuthService;
 import com.jatin.jwtauth.service.EmailVerificationService;
+import com.jatin.jwtauth.service.PasswordResetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -30,6 +33,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final EmailVerificationService emailVerificationService;
+    private final PasswordResetService passwordResetService;
 
     @Operation(summary = "Register a new user",
                description = "Creates a new account with the USER role and returns an access + refresh token pair immediately.")
@@ -97,6 +101,27 @@ public class AuthController {
     public ResponseEntity<Void> resendVerification(
             @AuthenticationPrincipal UserDetails userDetails) {
         emailVerificationService.resendVerification(userDetails.getUsername());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Request a password reset email",
+               description = "Sends a one-time reset link to the registered email address. Always returns 204 regardless of whether the email exists — prevents user enumeration.")
+    @ApiResponse(responseCode = "204", description = "Reset email sent (or silently ignored if email unknown)")
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.requestReset(request.getEmail());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Reset password using the one-time token",
+               description = "Validates the reset token and sets a new password. The token is consumed after first use.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Password reset successfully"),
+        @ApiResponse(responseCode = "400", description = "Token invalid, expired, or already used", content = @Content)
+    })
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.noContent().build();
     }
 
