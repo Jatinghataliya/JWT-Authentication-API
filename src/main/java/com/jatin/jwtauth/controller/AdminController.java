@@ -108,6 +108,34 @@ public class AdminController {
         return ResponseEntity.ok(adminService.revokeRole(id, request));
     }
 
+    @Operation(summary = "Disable a user account",
+               description = "Sets enabled=false. The user cannot log in until re-enabled. Existing valid access tokens are unaffected.")
+    @PatchMapping("/users/{id}/disable")
+    public ResponseEntity<UserSummary> disableUser(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.disableUser(id));
+    }
+
+    @Operation(summary = "Enable a user account",
+               description = "Restores a previously disabled account. The user may log in immediately.")
+    @PatchMapping("/users/{id}/enable")
+    public ResponseEntity<UserSummary> enableUser(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.enableUser(id));
+    }
+
+    @Operation(summary = "Lock a user account",
+               description = "Sets accountNonLocked=false and records lockedAt. Login attempts produce LockedException.")
+    @PatchMapping("/users/{id}/lock")
+    public ResponseEntity<UserSummary> lockUser(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.lockUser(id));
+    }
+
+    @Operation(summary = "Unlock a user account",
+               description = "Clears the lock flag and lockedAt timestamp. The user may log in immediately.")
+    @PatchMapping("/users/{id}/unlock")
+    public ResponseEntity<UserSummary> unlockUser(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.unlockUser(id));
+    }
+
     @Operation(summary = "Delete a user permanently")
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {

@@ -16,10 +16,15 @@ import java.util.stream.Collectors;
 /**
  * UserDetailsServiceImpl — loads a User from the database by username.
  *
- * Key learning point (dynamic roles):
- *  We now iterate the user's Set<Role> and map EACH role to a GrantedAuthority.
- *  Spring Security receives a collection of authorities, so hasRole('ADMIN') AND
- *  hasRole('EDITOR') can both be true for the same user simultaneously.
+ * Key learning points (dynamic roles + account flags):
+ *  1. We iterate the user's Set<Role> and map EACH role to a GrantedAuthority.
+ *     Spring Security receives a collection so hasRole('ADMIN') AND
+ *     hasRole('EDITOR') can both be true for the same user simultaneously.
+ *  2. The 4-argument User constructor exposes enabled, accountNonExpired,
+ *     accountNonLocked and credentialsNonExpired.  Spring Security reads these
+ *     before every authentication attempt:
+ *       enabled=false        → DisabledException  (HTTP 401)
+ *       accountNonLocked=false → LockedException  (HTTP 401)
  */
 @Service
 @RequiredArgsConstructor
@@ -39,9 +44,15 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
                 .collect(Collectors.toSet());
 
+        // 4-argument constructor: (username, password, enabled, accountNonExpired,
+        //                          credentialsNonExpired, accountNonLocked, authorities)
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
+                user.isEnabled(),
+                true,                       // accountNonExpired — not tracked separately
+                true,                       // credentialsNonExpired — not tracked separately
+                user.isAccountNonLocked(),
                 authorities
         );
     }

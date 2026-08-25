@@ -113,6 +113,51 @@ public class AdminService {
         return UserSummary.from(userRepository.save(user));
     }
 
+    // ─── Account status management ────────────────────────────────────────────
+
+    /**
+     * Disable a user account. The user can no longer log in.
+     * Any currently valid access tokens remain valid until they expire or are
+     * blacklisted — this only prevents new logins.
+     *
+     * @throws IllegalArgumentException if trying to disable the last ADMIN
+     */
+    @Transactional
+    public UserSummary disableUser(Long id) {
+        User user = findUser(id);
+        user.setEnabled(false);
+        return UserSummary.from(userRepository.save(user));
+    }
+
+    /** Re-enable a previously disabled user account. */
+    @Transactional
+    public UserSummary enableUser(Long id) {
+        User user = findUser(id);
+        user.setEnabled(true);
+        return UserSummary.from(userRepository.save(user));
+    }
+
+    /**
+     * Lock a user account. Records the lock timestamp.
+     * Locked users receive LockedException on login attempt.
+     */
+    @Transactional
+    public UserSummary lockUser(Long id) {
+        User user = findUser(id);
+        user.setAccountNonLocked(false);
+        user.setLockedAt(java.time.LocalDateTime.now());
+        return UserSummary.from(userRepository.save(user));
+    }
+
+    /** Unlock a previously locked user account and clear the lock timestamp. */
+    @Transactional
+    public UserSummary unlockUser(Long id) {
+        User user = findUser(id);
+        user.setAccountNonLocked(true);
+        user.setLockedAt(null);
+        return UserSummary.from(userRepository.save(user));
+    }
+
     /** Delete a user by id. Removes associated refresh token first to satisfy the FK. */
     @Transactional
     public void deleteUser(Long id) {

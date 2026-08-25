@@ -24,6 +24,12 @@ public class UserSummary {
     private String lastName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    /** false → account is disabled; admin must re-enable before user can log in. */
+    private boolean enabled;
+    /** false → account is locked (e.g. by brute-force protection or admin action). */
+    private boolean accountNonLocked;
+    /** When the account was locked; null if not currently locked. */
+    private LocalDateTime lockedAt;
     /** All role names assigned to this user. */
     private Set<String> roles;
 
@@ -36,6 +42,9 @@ public class UserSummary {
                 .lastName(user.getLastName())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .enabled(user.isEnabled())
+                .accountNonLocked(user.isAccountNonLocked())
+                .lockedAt(user.getLockedAt())
                 .roles(user.getRoles().stream()
                         .map(r -> r.getName())
                         .collect(Collectors.toSet()))

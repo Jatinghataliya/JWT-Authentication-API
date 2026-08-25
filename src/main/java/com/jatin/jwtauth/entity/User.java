@@ -22,6 +22,9 @@ import java.util.Set;
  *    no code needs to set them manually.
  *  - Profile fields (email, firstName, lastName) are nullable — existing users
  *    have no data for them until they update their profile.
+ *  - enabled / accountNonLocked are read by Spring Security via UserDetails.
+ *    Setting enabled=false blocks ALL logins for that user immediately.
+ *    Setting accountNonLocked=false triggers AccountLockedException on login.
  *  - The @ManyToMany relationship creates a "user_roles" join table in the DB.
  */
 @Entity
@@ -67,6 +70,31 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    // ─── Account-status flags ─────────────────────────────────────────────────
+
+    /**
+     * Whether the account is active. false → Spring Security rejects login
+     * with DisabledException ("User is disabled").
+     */
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean enabled = true;
+
+    /**
+     * Whether the account is unlocked. false → Spring Security rejects login
+     * with LockedException ("User account is locked").
+     */
+    @Builder.Default
+    @Column(name = "account_non_locked", nullable = false)
+    private boolean accountNonLocked = true;
+
+    /**
+     * Timestamp of when the account was locked — informational only.
+     * Null when the account is not locked.
+     */
+    @Column(name = "locked_at")
+    private LocalDateTime lockedAt;
 
     // ─── Roles ───────────────────────────────────────────────────────────────
 
