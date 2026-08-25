@@ -1,10 +1,15 @@
 package com.jatin.jwtauth.service;
 
 import com.jatin.jwtauth.dto.AuditEventSummary;
+import com.jatin.jwtauth.dto.PagedResponse;
 import com.jatin.jwtauth.entity.AuditEvent;
 import com.jatin.jwtauth.repository.AuditEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,17 +61,37 @@ public class AuditService {
         log(username, eventType, null, details);
     }
 
-    /** Return up to 100 most recent events, optionally filtered by username. */
+    /** Return up to 100 most recent events, optionally filtered by username (non-pageable legacy). */
     @Transactional(readOnly = true)
     public List<AuditEventSummary> getEvents(String username) {
-        List<AuditEvent> events = (username != null && !username.isBlank())
-                ? auditEventRepository.findByUsernameOrderByCreatedAtDesc(username)
-                : auditEventRepository.findTop100ByOrderByCreatedAtDesc();
+        Pageable top100 = PageRequest.of(0, 100, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<AuditEvent> page = (username != null && !username.isBlank())
+                ? auditEventRepository.findByUsername(username, top100)
+                : auditEventRepository.findAll(top100);
 
-        return events.stream()
-                .map(e -> new AuditEventSummary(
-                        e.getId(), e.getUsername(), e.getEventType(),
-                        e.getIpAddress(), e.getDetails(), e.getCreatedAt()))
+        return page.getContent().stream()
+                .map(this::toSummary)
                 .collect(Collectors.toList());
+    }
+
+    /** Return paginated events, optionally filtered by username. */
+    @Transactional(readOnly = true)
+    public PagedResponse<AuditEventSummary> getEventsPaged(String username, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<AuditEvent> result = (username != null && !username.isBlank())
+                ? auditEventRepository.findByUsername(username, pageable)
+                : auditEventRepository.findAll(pageable);
+
+        List<AuditEventSummary> content = result.getContent().stream()
+                .map(this::toSummary)
+                .collect(Collectors.toList());
+
+        return new PagedResponse<>(content, result.getNumber(), result.getSize(),
+                result.getTotalElements(), result.getTotalPages(), result.isLast());
+    }
+
+    private AuditEventSummary toSummary(AuditEvent e) {
+        return new AuditEventSummary(e.getId(), e.getUsername(), e.getEventType(),
+                e.getIpAddress(), e.getDetails(), e.getCreatedAt());
     }
 }

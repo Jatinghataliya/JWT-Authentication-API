@@ -3,6 +3,7 @@ package com.jatin.jwtauth.service;
 import com.jatin.jwtauth.dto.AdminRegisterRequest;
 import com.jatin.jwtauth.dto.AssignRoleRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
+import com.jatin.jwtauth.dto.PagedResponse;
 import com.jatin.jwtauth.dto.UserSummary;
 import com.jatin.jwtauth.entity.Role;
 import com.jatin.jwtauth.entity.User;
@@ -11,6 +12,10 @@ import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import com.jatin.jwtauth.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -75,9 +80,20 @@ public class AdminService {
                 .build();
     }
 
-    /** Return all users (password-safe projection). */
+    /** Return all users (password-safe projection, non-pageable). */
     public List<UserSummary> getAllUsers() {
         return userRepository.findAll().stream().map(UserSummary::from).toList();
+    }
+
+    /** Return paginated users sorted by username ascending by default. */
+    public PagedResponse<UserSummary> getAllUsersPaged(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("username").ascending());
+        Page<User> result = userRepository.findAll(pageable);
+        List<UserSummary> content = result.getContent().stream()
+                .map(UserSummary::from)
+                .collect(Collectors.toList());
+        return new PagedResponse<>(content, result.getNumber(), result.getSize(),
+                result.getTotalElements(), result.getTotalPages(), result.isLast());
     }
 
     /** Return a single user by id. */

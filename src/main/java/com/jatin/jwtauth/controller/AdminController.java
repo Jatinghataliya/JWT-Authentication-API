@@ -4,6 +4,7 @@ import com.jatin.jwtauth.dto.AdminRegisterRequest;
 import com.jatin.jwtauth.dto.AssignRoleRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
 import com.jatin.jwtauth.dto.AuditEventSummary;
+import com.jatin.jwtauth.dto.PagedResponse;
 import com.jatin.jwtauth.dto.RoleRequest;
 import com.jatin.jwtauth.dto.RoleResponse;
 import com.jatin.jwtauth.dto.UserSummary;
@@ -95,6 +96,15 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getAllUsers());
     }
 
+    @Operation(summary = "List all users (paginated)",
+               description = "Returns a paginated list of users. Use ?page=0&size=20 query params.")
+    @GetMapping("/users/paged")
+    public ResponseEntity<PagedResponse<UserSummary>> getAllUsersPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(adminService.getAllUsersPaged(page, size));
+    }
+
     @Operation(summary = "Get user by ID")
     @GetMapping("/users/{id}")
     public ResponseEntity<UserSummary> getUserById(@PathVariable Long id) {
@@ -165,5 +175,15 @@ public class AdminController {
     public ResponseEntity<List<AuditEventSummary>> getAuditLog(
             @RequestParam(required = false) String username) {
         return ResponseEntity.ok(auditService.getEvents(username));
+    }
+
+    @Operation(summary = "Query the security audit log (paginated)",
+               description = "Returns paginated audit events, newest first. Optionally filter by username.")
+    @GetMapping("/audit/paged")
+    public ResponseEntity<PagedResponse<AuditEventSummary>> getAuditLogPaged(
+            @RequestParam(required = false) String username,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(auditService.getEventsPaged(username, page, size));
     }
 }
