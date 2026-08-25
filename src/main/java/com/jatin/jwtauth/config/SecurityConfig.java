@@ -1,0 +1,86 @@
+package com.jatin.jwtauth.config;
+
+import com.jatin.jwtauth.filter.JwtAuthFilter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+/**
+ * SecurityConfig — Spring Security 6 configuration.
+ *
+ * Key learning points:
+ *  1. STATELESS session — no HttpSession is ever created (key for horizontal scaling).
+ *  2. CSRF disabled — not needed for stateless REST APIs (tokens are not cookies).
+ *  3. Our JwtAuthFilter runs BEFORE UsernamePasswordAuthenticationFilter.
+ *  4. BCrypt hashes passwords — never store plain text.
+ *  5. @EnableMethodSecurity allows @PreAuthorize on controller methods.
+ */
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    private final JwtAuthFilter jwtAuthFilter;
+    private final UserDetailsService userDetailsService;
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            // Disable CSRF — REST APIs use tokens, not browser cookies
+            .csrf(AbstractHttpConfigurer::disable)
+
+            // Define which endpoints are public vs protected
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/auth/**").permitAll()   // login + register are public
+                .requestMatchers("/actuator/health").permitAll()
+                .anyRequest().authenticated()                  // everything else requires a valid JWT
+            )
+
+            // STATELESS — no session, no cookies → horizontally scalable
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+
+            // Use our DaoAuthenticationProvider (BCrypt + UserDetailsService)
+            .authenticationProvider(authenticationProvider())
+
+            // Register our JWT filter before Spring's default username/password filter
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        // BCrypt automatically handles salt — safe against rainbow table attacks
+        return new BCryptPasswordEncoder();
+    }
+}

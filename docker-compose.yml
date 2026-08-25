@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+
+  # ─── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: jwt-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jwt-network
+
+  # ─── Spring Boot App ────────────────────────────────────────────────────────
+  # Horizontally scalable: run `docker compose up --scale app=3`
+  app:
+    build: .
+    image: jwt-auth-api:latest
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jwt-network
+    # No fixed port mapping — use a load balancer (nginx) in front when scaling
+    expose:
+      - "8080"
+    restart: unless-stopped
+
+  # ─── Nginx Load Balancer ────────────────────────────────────────────────────
+  # Routes traffic to all `app` instances (round-robin by default)
+  nginx:
+    image: nginx:alpine
+    container_name: jwt-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    networks:
+      - jwt-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  jwt-network:
+    driver: bridge
