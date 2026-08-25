@@ -17,3 +17,8 @@ jwt:
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
   expiration: 900000
   refresh-expiration: 604800000
+
+security:
+  max-failed-attempts: 3       # low threshold for fast tests
+  lockout-duration-minutes: 30
+  attempt-cleanup-interval-ms: 3600000

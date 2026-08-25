@@ -8,6 +8,7 @@ import com.jatin.jwtauth.entity.User;
 import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import com.jatin.jwtauth.util.JwtUtil;
+import com.jatin.jwtauth.service.LoginAttemptService;
 import com.jatin.jwtauth.service.TokenBlacklistService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +47,7 @@ class AuthServiceTest {
     @Mock private UserDetailsService userDetailsService;
     @Mock private RefreshTokenService refreshTokenService;
     @Mock private TokenBlacklistService tokenBlacklistService;
+    @Mock private LoginAttemptService loginAttemptService;
 
     @InjectMocks
     private AuthService authService;

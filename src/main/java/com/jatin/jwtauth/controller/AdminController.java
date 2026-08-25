@@ -7,6 +7,7 @@ import com.jatin.jwtauth.dto.RoleRequest;
 import com.jatin.jwtauth.dto.RoleResponse;
 import com.jatin.jwtauth.dto.UserSummary;
 import com.jatin.jwtauth.service.AdminService;
+import com.jatin.jwtauth.service.LoginAttemptService;
 import com.jatin.jwtauth.service.RoleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -31,6 +32,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final RoleService roleService;
+    private final LoginAttemptService loginAttemptService;
 
     // ═══ Role Catalog ════════════════════════════════════════════════════════
 
@@ -106,6 +108,15 @@ public class AdminController {
     @DeleteMapping("/users/{id}/roles")
     public ResponseEntity<UserSummary> revokeRole(@PathVariable Long id, @Valid @RequestBody AssignRoleRequest request) {
         return ResponseEntity.ok(adminService.revokeRole(id, request));
+    }
+
+    @Operation(summary = "Get recent login attempts for a user",
+               description = "Returns the 20 most-recent login attempts (success and failure) for audit purposes.")
+    @GetMapping("/users/{id}/login-attempts")
+    public ResponseEntity<java.util.List<com.jatin.jwtauth.dto.LoginAttemptSummary>> getLoginAttempts(
+            @PathVariable Long id) {
+        String username = adminService.getUserById(id).getUsername();
+        return ResponseEntity.ok(loginAttemptService.getRecentAttempts(username));
     }
 
     @Operation(summary = "Disable a user account",

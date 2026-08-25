@@ -8,6 +8,7 @@ import com.jatin.jwtauth.dto.RoleRequest;
 import com.jatin.jwtauth.entity.Role;
 import com.jatin.jwtauth.entity.User;
 import com.jatin.jwtauth.repository.BlacklistedTokenRepository;
+import com.jatin.jwtauth.repository.LoginAttemptRepository;
 import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
@@ -49,6 +50,7 @@ class DynamicRoleIntegrationTest {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private RefreshTokenRepository refreshTokenRepository;
     @Autowired private BlacklistedTokenRepository blacklistedTokenRepository;
+    @Autowired private LoginAttemptRepository loginAttemptRepository;
 
     private String adminToken;
     private String userToken;
@@ -56,6 +58,7 @@ class DynamicRoleIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        loginAttemptRepository.deleteAll();
         blacklistedTokenRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         userRepository.deleteAll();

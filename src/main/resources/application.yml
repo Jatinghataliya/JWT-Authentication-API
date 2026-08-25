@@ -24,6 +24,12 @@ jwt:
   blacklist:
     cleanup-interval-ms: ${JWT_BLACKLIST_CLEANUP_MS:3600000} # 1 hour    (purge expired JTIs)
 
+# ─── Brute-force protection ────────────────────────────────────────────────────
+security:
+  max-failed-attempts: ${MAX_FAILED_ATTEMPTS:5}                      # auto-lock after N failures
+  lockout-duration-minutes: ${LOCKOUT_DURATION_MINUTES:30}           # failure window in minutes
+  attempt-cleanup-interval-ms: ${ATTEMPT_CLEANUP_MS:3600000}         # purge old rows every 1 hour
+
 # ─── Spring Boot Actuator ─────────────────────────────────────────────────────
 management:
   endpoints:

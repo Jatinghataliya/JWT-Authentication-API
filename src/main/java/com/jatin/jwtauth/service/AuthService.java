@@ -11,6 +11,7 @@ import com.jatin.jwtauth.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,6 +35,7 @@ public class AuthService {
     private final UserDetailsService userDetailsService;
     private final RefreshTokenService refreshTokenService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final LoginAttemptService loginAttemptService;
 
     /**
      * Register a new user.
@@ -62,14 +64,35 @@ public class AuthService {
         return buildAuthResponse(userDetails, user.getRoles(), refreshToken.getToken());
     }
 
-    /** Authenticate an existing user and return a fresh access + refresh token pair. */
+    /**
+     * Authenticate an existing user and return a fresh access + refresh token pair.
+     * Records every attempt (success or failure) for brute-force tracking.
+     * Auto-locks the account after {@code security.max-failed-attempts} failures.
+     */
     public AuthResponse login(AuthRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
-                        request.getPassword()
-                )
-        );
+        return login(request, null);
+    }
+
+    /**
+     * Overload that accepts the client IP for richer audit records.
+     * Called by AuthController which extracts the IP from the HTTP request.
+     */
+    public AuthResponse login(AuthRequest request, String ipAddress) {
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(),
+                            request.getPassword()
+                    )
+            );
+        } catch (AuthenticationException ex) {
+            // Record failure BEFORE re-throwing so the lock can trigger
+            loginAttemptService.recordFailure(request.getUsername(), ipAddress);
+            throw ex;
+        }
+
+        // Successful authentication — reset failure window
+        loginAttemptService.recordSuccess(request.getUsername(), ipAddress);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
         User user = userRepository.findByUsername(request.getUsername()).orElseThrow();

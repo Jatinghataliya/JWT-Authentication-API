@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jatin.jwtauth.dto.AuthRequest;
 import com.jatin.jwtauth.dto.RefreshTokenRequest;
 import com.jatin.jwtauth.repository.BlacklistedTokenRepository;
+import com.jatin.jwtauth.repository.LoginAttemptRepository;
 import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,9 +30,11 @@ class AuthControllerIntegrationTest {
     @Autowired private UserRepository userRepository;
     @Autowired private RefreshTokenRepository refreshTokenRepository;
     @Autowired private BlacklistedTokenRepository blacklistedTokenRepository;
+    @Autowired private LoginAttemptRepository loginAttemptRepository;
 
     @BeforeEach
     void cleanDb() {
+        loginAttemptRepository.deleteAll();
         blacklistedTokenRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         userRepository.deleteAll();

@@ -51,8 +51,11 @@ public class AuthController {
                      content = @Content)
     })
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<AuthResponse> login(
+            @Valid @RequestBody AuthRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        String ip = httpRequest.getRemoteAddr();
+        return ResponseEntity.ok(authService.login(request, ip));
     }
 
     @Operation(summary = "Refresh access token",

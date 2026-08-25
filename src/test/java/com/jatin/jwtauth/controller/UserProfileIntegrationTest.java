@@ -6,6 +6,7 @@ import com.jatin.jwtauth.dto.AuthResponse;
 import com.jatin.jwtauth.dto.ChangePasswordRequest;
 import com.jatin.jwtauth.dto.UpdateProfileRequest;
 import com.jatin.jwtauth.repository.BlacklistedTokenRepository;
+import com.jatin.jwtauth.repository.LoginAttemptRepository;
 import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,11 +32,13 @@ class UserProfileIntegrationTest {
     @Autowired private UserRepository userRepository;
     @Autowired private RefreshTokenRepository refreshTokenRepository;
     @Autowired private BlacklistedTokenRepository blacklistedTokenRepository;
+    @Autowired private LoginAttemptRepository loginAttemptRepository;
 
     private String accessToken;
 
     @BeforeEach
     void setUp() throws Exception {
+        loginAttemptRepository.deleteAll();
         blacklistedTokenRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
