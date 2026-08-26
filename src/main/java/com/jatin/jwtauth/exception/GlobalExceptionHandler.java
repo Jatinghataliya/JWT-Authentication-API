@@ -39,10 +39,16 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.BAD_REQUEST, errors);
     }
 
-    /** 400 — duplicate username, etc. */
+    /** 400 — duplicate username, invalid token, etc. */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    /** 409 — conflict (e.g. deletion already requested) */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException ex) {
+        return buildError(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     /** 401 — wrong password */

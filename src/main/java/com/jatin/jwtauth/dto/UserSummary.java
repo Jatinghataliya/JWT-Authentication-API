@@ -34,6 +34,10 @@ public class UserSummary {
     private LocalDateTime lockedAt;
     /** All role names assigned to this user. */
     private Set<String> roles;
+    /** Non-null when the user has requested account deletion (pending 30-day erasure). */
+    private LocalDateTime deletionRequestedAt;
+    /** Non-null once the account PII has been fully erased. */
+    private LocalDateTime deletedAt;
 
     public static UserSummary from(User user) {
         return UserSummary.builder()
@@ -51,6 +55,8 @@ public class UserSummary {
                 .roles(user.getRoles().stream()
                         .map(r -> r.getName())
                         .collect(Collectors.toSet()))
+                .deletionRequestedAt(user.getDeletionRequestedAt())
+                .deletedAt(user.getDeletedAt())
                 .build();
     }
 }

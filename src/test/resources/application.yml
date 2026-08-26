@@ -42,6 +42,8 @@ app:
     refill-per-minute: 5
   cache:
     type: caffeine             # always use in-memory Caffeine in tests
+  erasure:
+    cron: "-"                  # disable scheduled erasure in tests — triggered manually
 
 security:
   max-failed-attempts: 3       # low threshold for fast tests

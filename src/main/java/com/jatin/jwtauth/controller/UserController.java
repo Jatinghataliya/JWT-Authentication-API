@@ -5,6 +5,7 @@ import com.jatin.jwtauth.dto.UpdateProfileRequest;
 import com.jatin.jwtauth.dto.UserSummary;
 import com.jatin.jwtauth.entity.User;
 import com.jatin.jwtauth.repository.UserRepository;
+import com.jatin.jwtauth.service.AccountErasureService;
 import com.jatin.jwtauth.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -33,6 +34,7 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final UserService userService;
+    private final AccountErasureService accountErasureService;
 
     @Operation(summary = "Get my profile",
                description = "Returns the calling user's id, username, email, name, timestamps, and roles. No password returned.")
@@ -81,5 +83,18 @@ public class UserController {
                 "message", "Welcome, " + userDetails.getUsername() + "!",
                 "access", "USER level"
         ));
+    }
+
+    @Operation(summary = "Request account deletion (GDPR)",
+               description = "Soft-deletes the calling user's account: disables it immediately and schedules PII "
+                           + "erasure after 30 days. Returns 204 on success. Returns 409 if deletion was already requested.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Deletion request accepted — account disabled, PII erasure scheduled"),
+        @ApiResponse(responseCode = "409", description = "Deletion already requested for this account", content = @Content)
+    })
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> requestAccountDeletion(@AuthenticationPrincipal UserDetails userDetails) {
+        accountErasureService.requestDeletion(userDetails.getUsername());
+        return ResponseEntity.noContent().build();
     }
 }

@@ -66,6 +66,8 @@ app:
     refill-per-minute: ${RATE_LIMIT_REFILL:10}   # tokens added per minute
   cache:
     type: ${CACHE_TYPE:caffeine}                 # caffeine (default) or redis
+  erasure:
+    cron: ${ERASURE_CRON:0 0 0 * * *}           # default: run at midnight every day
 
 # ─── Brute-force protection ────────────────────────────────────────────────────
 security:

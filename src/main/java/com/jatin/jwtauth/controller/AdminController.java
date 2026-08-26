@@ -8,6 +8,7 @@ import com.jatin.jwtauth.dto.PagedResponse;
 import com.jatin.jwtauth.dto.RoleRequest;
 import com.jatin.jwtauth.dto.RoleResponse;
 import com.jatin.jwtauth.dto.UserSummary;
+import com.jatin.jwtauth.service.AccountErasureService;
 import com.jatin.jwtauth.service.AdminService;
 import com.jatin.jwtauth.service.AuditService;
 import com.jatin.jwtauth.service.LoginAttemptService;
@@ -37,6 +38,7 @@ public class AdminController {
     private final RoleService roleService;
     private final LoginAttemptService loginAttemptService;
     private final AuditService auditService;
+    private final AccountErasureService accountErasureService;
 
     // ═══ Role Catalog ════════════════════════════════════════════════════════
 
@@ -164,6 +166,16 @@ public class AdminController {
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         adminService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Immediately erase a user's PII (GDPR hard-erase)",
+               description = "Wipes all personal data fields (email, name, password) immediately. "
+                           + "Username becomes 'deleted_{id}'. The User row is retained for audit FK integrity. "
+                           + "Does not require a prior deletion request — admin can trigger at any time.")
+    @DeleteMapping("/users/{id}/erase")
+    public ResponseEntity<Void> eraseUser(@PathVariable Long id) {
+        accountErasureService.eraseByAdmin(id);
         return ResponseEntity.noContent().build();
     }
 

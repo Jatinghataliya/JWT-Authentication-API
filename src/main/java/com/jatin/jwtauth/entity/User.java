@@ -113,6 +113,26 @@ public class User {
     @Column(name = "locked_at")
     private LocalDateTime lockedAt;
 
+    // ─── GDPR / Account deletion ──────────────────────────────────────────────
+
+    /**
+     * Set when the user requests account deletion via DELETE /api/user/me.
+     * The account is immediately disabled; PII is erased 30 days later by
+     * the scheduled job unless an admin performs an immediate hard-erase.
+     * Null while the account is active.
+     */
+    @Column(name = "deletion_requested_at")
+    private LocalDateTime deletionRequestedAt;
+
+    /**
+     * Set once PII has been wiped (scheduled or admin-triggered hard-erase).
+     * Email, firstName, lastName, and password are overwritten;
+     * username becomes "deleted_{id}" so audit rows remain coherent.
+     * Null while the account has not yet been erased.
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     // ─── Roles ───────────────────────────────────────────────────────────────
 
     /**
