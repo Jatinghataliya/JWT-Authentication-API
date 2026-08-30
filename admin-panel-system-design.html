@@ -1,0 +1,413 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Admin Panel — System Design</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px; line-height: 1.6;
+    background: #fff; color: #1f2328;
+    padding: 32px 16px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: #57606a; font-size: 13px; margin-bottom: 30px; }
+  h2 { font-size: 15px; font-weight: 700; border-bottom: 1px solid #e5e7eb;
+       padding-bottom: 6px; margin: 28px 0 14px; }
+  h3 { font-size: 13px; font-weight: 700; margin: 16px 0 6px; color: #1f2328; }
+  p  { font-size: 13px; margin-bottom: 10px; color: #1f2328; }
+
+  /* option cards */
+  .options { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .opt {
+    border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px;
+  }
+  .opt.best { border-color: #3b82d4; background: #f0f6ff; }
+  .opt-badge {
+    display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .05em;
+    padding: 2px 7px; border-radius: 20px; margin-bottom: 6px;
+  }
+  .badge-rec  { background: #dbeafe; color: #1d4ed8; }
+  .badge-alt  { background: #f3f4f6; color: #57606a; }
+  .badge-skip { background: #fee2e2; color: #dc2626; }
+  .opt-title  { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .opt-body   { font-size: 12px; color: #57606a; }
+
+  /* arch diagram */
+  .arch {
+    border: 1px solid #e5e7eb; border-radius: 8px;
+    padding: 18px; background: #f7f8fa; margin-bottom: 10px;
+  }
+  .arch-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .arch-box {
+    flex: 1; border: 1px solid #e5e7eb; border-radius: 6px;
+    background: #fff; padding: 8px 12px; font-size: 12px;
+    text-align: center; font-weight: 600;
+  }
+  .arch-box.blue  { border-color: #3b82d4; background: #eff6ff; color: #1d4ed8; }
+  .arch-box.green { border-color: #10b981; background: #ecfdf5; color: #065f46; }
+  .arch-box.gray  { border-color: #d1d5db; background: #f9fafb; color: #374151; }
+  .arch-box.red   { border-color: #f87171; background: #fff1f2; color: #be123c; }
+  .arch-arrow { color: #57606a; font-size: 16px; flex-shrink: 0; }
+  .arch-note  { font-size: 11px; color: #57606a; margin-top: 4px; }
+
+  /* screens */
+  .screens { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .screen {
+    border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px;
+  }
+  .screen-title { font-size: 13px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .screen-icon { width: 18px; height: 18px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; font-weight: 700; flex-shrink: 0; }
+  .ic-blue   { background: #3b82d4; }
+  .ic-green  { background: #10b981; }
+  .ic-amber  { background: #d97706; }
+  .ic-purple { background: #7c5cd8; }
+  .ic-red    { background: #dc2626; }
+  .ic-slate  { background: #64748b; }
+  .screen ul { list-style: none; padding: 0; }
+  .screen li { font-size: 12px; color: #57606a; padding: 2px 0; }
+  .screen li::before { content: "→ "; color: #3b82d4; }
+
+  /* api table */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 10px; }
+  th { background: #f7f8fa; border: 1px solid #e5e7eb; padding: 7px 10px; text-align: left; font-weight: 600; color: #57606a; }
+  td { border: 1px solid #e5e7eb; padding: 7px 10px; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .method { font-family: monospace; font-size: 11px; font-weight: 700; }
+  .get    { color: #065f46; }
+  .post   { color: #1d4ed8; }
+  .patch  { color: #92400e; }
+  .delete { color: #9f1239; }
+  code { font-family: monospace; background: #f3f4f6; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+  /* auth flow */
+  .flow-steps { counter-reset: step; }
+  .flow-step {
+    counter-increment: step;
+    display: flex; gap: 12px; margin-bottom: 10px; align-items: flex-start;
+  }
+  .step-num {
+    flex-shrink: 0; width: 24px; height: 24px;
+    background: #3b82d4; color: #fff;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; margin-top: 1px;
+  }
+  .step-body { font-size: 13px; }
+  .step-body strong { color: #1f2328; }
+  .step-note { font-size: 11px; color: #57606a; margin-top: 2px; }
+
+  /* folder tree */
+  .tree { font-family: monospace; font-size: 12px; background: #f7f8fa;
+          border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px; line-height: 1.8; }
+  .tree .dir  { color: #1d4ed8; font-weight: 700; }
+  .tree .file { color: #1f2328; }
+  .tree .cmt  { color: #57606a; }
+
+  /* plan table */
+  .plan td:first-child { font-weight: 700; white-space: nowrap; }
+  .tag { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 10px; border: 1px solid #e5e7eb; background: #f7f8fa; color: #57606a; }
+  .tag.hi { background: #dcfce7; border-color: #bbf7d0; color: #166534; }
+  .tag.md { background: #fef9c3; border-color: #fde68a; color: #92400e; }
+  .tag.lo { background: #f1f5f9; border-color: #cbd5e1; color: #475569; }
+
+  .design-note {
+    margin: 10px 0; padding: 9px 13px;
+    background: #f7f8fa; border-left: 3px solid #3b82d4;
+    border-radius: 0 4px 4px 0; font-size: 12px; color: #57606a;
+  }
+  .design-note strong { color: #1f2328; }
+
+  .warn-note {
+    margin: 10px 0; padding: 9px 13px;
+    background: #fffbeb; border-left: 3px solid #d97706;
+    border-radius: 0 4px 4px 0; font-size: 12px; color: #92400e;
+  }
+
+  footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #57606a; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Admin Panel — System Design</h1>
+  <p class="subtitle">Architecture, tech choice, screen breakdown, API mapping, auth flow, and implementation plan — grounded in the existing JWT Auth API (20 features, Spring Boot 3.2, PostgreSQL).</p>
+
+  
+  <h2>1. Technology Choice</h2>
+  <div class="options">
+    <div class="opt best">
+      <span class="opt-badge badge-rec">✓ RECOMMENDED</span>
+      <div class="opt-title">React + Vite (SPA)</div>
+      <div class="opt-body">Single-page app, calls existing REST API directly. JWT stored in memory. Fastest UI, full control. No backend changes needed.</div>
+    </div>
+    <div class="opt">
+      <span class="opt-badge badge-alt">ALTERNATIVE</span>
+      <div class="opt-title">Spring MVC + Thymeleaf</div>
+      <div class="opt-body">Server-rendered HTML inside the same Spring Boot app. No CORS. Simpler deploy. But slower UI and tightly coupled.</div>
+    </div>
+    <div class="opt">
+      <span class="opt-badge badge-skip">AVOID</span>
+      <div class="opt-title">Next.js / full-stack</div>
+      <div class="opt-body">Overkill for a standalone admin panel. Adds SSR complexity with no benefit when the backend already has all the data.</div>
+    </div>
+  </div>
+  <div class="design-note">
+    <strong>Why React SPA?</strong> Every endpoint the admin panel needs already exists — <code>GET /api/admin/users/paged</code>, <code>GET /api/admin/audit/paged</code>, role CRUD, account actions. The panel is purely a consumer of the existing API. No backend code needs to change.
+  </div>
+
+  
+  <h2>2. Architecture</h2>
+  <div class="arch">
+    <div class="arch-row">
+      <div class="arch-box blue">Browser<br /><small>React + Vite SPA</small></div>
+      <div class="arch-arrow">⟶</div>
+      <div class="arch-box green">Spring Boot API<br /><small>:8080 / api/**</small></div>
+      <div class="arch-arrow">⟶</div>
+      <div class="arch-box gray">PostgreSQL<br /><small>all data</small></div>
+    </div>
+    <div class="arch-row">
+      <div class="arch-box gray">Static files served<br /><small>Vite dev :5173 | prod: Nginx / Spring static</small></div>
+      <div class="arch-arrow">⟶</div>
+      <div class="arch-box red">JWT in memory<br /><small>access token (15 min)</small></div>
+      <div class="arch-arrow">⟶</div>
+      <div class="arch-box gray">Refresh token<br /><small>HttpOnly cookie or localStorage</small></div>
+    </div>
+    <p class="arch-note">Dev: Vite proxy forwards /api/* to :8080 — no CORS config needed. Prod: Nginx serves the React build at / and proxies /api/* to Spring Boot.</p>
+  </div>
+
+  <div class="warn-note">
+    <strong>Token storage security decision:</strong> Store the access token in JS memory (React state / Zustand). Never in localStorage (XSS-readable). Use an HttpOnly cookie for the refresh token so JS cannot read it but the browser sends it automatically on token refresh calls.
+  </div>
+
+  
+  <h2>3. Screens (6 views)</h2>
+  <div class="screens">
+    <div class="screen">
+      <div class="screen-title"><span class="screen-icon ic-blue">⊞</span> Dashboard (Home)</div>
+      <ul>
+        <li>Total users / active / locked / deleted counters</li>
+        <li>Recent audit events (last 10, live-refresh)</li>
+        <li>Failed login count (last 24 h)</li>
+        <li>Quick-action buttons → manage users</li>
+      </ul>
+    </div>
+    <div class="screen">
+      <div class="screen-title"><span class="screen-icon ic-green">👤</span> User Management</div>
+      <ul>
+        <li>Paginated table — username, email, roles, status badges</li>
+        <li>Search / filter by username or role</li>
+        <li>Row actions: enable, disable, lock, unlock, delete, erase</li>
+        <li>Create user modal (roles multi-select)</li>
+        <li>Edit roles inline (assign / revoke)</li>
+      </ul>
+    </div>
+    <div class="screen">
+      <div class="screen-title"><span class="screen-icon ic-amber">🔑</span> Role Management</div>
+      <ul>
+        <li>List all roles with user counts</li>
+        <li>Create / rename / delete roles</li>
+        <li>Assign role to any user from this view</li>
+      </ul>
+    </div>
+    <div class="screen">
+      <div class="screen-title"><span class="screen-icon ic-purple">📋</span> Audit Log</div>
+      <ul>
+        <li>Paginated event table (newest first)</li>
+        <li>Filter by username, event type, date range</li>
+        <li>Color-coded event types (LOGIN_FAILURE = red)</li>
+        <li>IP address column</li>
+      </ul>
+    </div>
+    <div class="screen">
+      <div class="screen-title"><span class="screen-icon ic-red">🔐</span> Login Attempts</div>
+      <ul>
+        <li>Search by username → last 20 attempts</li>
+        <li>Success / failure indicators per row</li>
+        <li>IP address and timestamp per attempt</li>
+        <li>One-click lock from this view</li>
+      </ul>
+    </div>
+    <div class="screen">
+      <div class="screen-title"><span class="screen-icon ic-slate">👁</span> Login Page</div>
+      <ul>
+        <li>Username + password form → POST /api/auth/login</li>
+        <li>Stores access token in memory on success</li>
+        <li>Redirects to Dashboard</li>
+        <li>Rejects non-ADMIN tokens with clear error</li>
+      </ul>
+    </div>
+  </div>
+
+  
+  <h2>4. API Mapping (zero new endpoints needed)</h2>
+  <table>
+    <thead>
+      <tr><th>Screen</th><th>Method</th><th>Endpoint</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Login</td><td><span class="method post">POST</span></td><td><code>/api/auth/login</code></td><td>Get access + refresh token</td></tr>
+      <tr><td>Login</td><td><span class="method post">POST</span></td><td><code>/api/auth/refresh</code></td><td>Silent token renewal</td></tr>
+      <tr><td>Login</td><td><span class="method post">POST</span></td><td><code>/api/auth/logout</code></td><td>Blacklist token on sign-out</td></tr>
+      <tr><td>Users</td><td><span class="method get">GET</span></td><td><code>/api/admin/users/paged?page=&amp;size=</code></td><td>Paginated user table</td></tr>
+      <tr><td>Users</td><td><span class="method get">GET</span></td><td><code>/api/admin/users/{id}</code></td><td>User detail / edit modal</td></tr>
+      <tr><td>Users</td><td><span class="method post">POST</span></td><td><code>/api/admin/users</code></td><td>Create user with roles</td></tr>
+      <tr><td>Users</td><td><span class="method patch">PATCH</span></td><td><code>/api/admin/users/{id}/enable|disable|lock|unlock</code></td><td>Account status actions</td></tr>
+      <tr><td>Users</td><td><span class="method delete">DELETE</span></td><td><code>/api/admin/users/{id}</code></td><td>Permanent delete</td></tr>
+      <tr><td>Users</td><td><span class="method delete">DELETE</span></td><td><code>/api/admin/users/{id}/erase</code></td><td>GDPR hard-erase</td></tr>
+      <tr><td>Users</td><td><span class="method post">POST</span></td><td><code>/api/admin/users/{id}/roles</code></td><td>Assign role</td></tr>
+      <tr><td>Users</td><td><span class="method delete">DELETE</span></td><td><code>/api/admin/users/{id}/roles</code></td><td>Revoke role</td></tr>
+      <tr><td>Roles</td><td><span class="method get">GET</span></td><td><code>/api/admin/roles</code></td><td>List all roles</td></tr>
+      <tr><td>Roles</td><td><span class="method post">POST</span></td><td><code>/api/admin/roles</code></td><td>Create role</td></tr>
+      <tr><td>Roles</td><td><span class="method delete">DELETE</span></td><td><code>/api/admin/roles/{id}</code></td><td>Delete role</td></tr>
+      <tr><td>Audit</td><td><span class="method get">GET</span></td><td><code>/api/admin/audit/paged?username=&amp;page=&amp;size=</code></td><td>Paginated audit log</td></tr>
+      <tr><td>Login attempts</td><td><span class="method get">GET</span></td><td><code>/api/admin/users/{id}/login-attempts</code></td><td>Last 20 attempts for user</td></tr>
+    </tbody>
+  </table>
+
+  
+  <h2>5. Authentication Flow in the UI</h2>
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>Login</strong> — Admin submits username + password → <code>POST /api/auth/login</code>.
+        <div class="step-note">Response contains <code>accessToken</code> (JWT, 15 min) and <code>refreshToken</code> (UUID, 7 days). Check <code>roles</code> array — if it does not contain <code>"ADMIN"</code>, show "Not authorised" and discard the token.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>Store tokens</strong> — <code>accessToken</code> in React/Zustand memory state only. <code>refreshToken</code> in an HttpOnly cookie (set by the browser on <code>Set-Cookie</code>, or stored in memory if the API doesn't use cookies yet).
+        <div class="step-note">Memory storage means the token is lost on page reload — that's correct and secure. The refresh token handles silent re-login.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <strong>Attach to every request</strong> — Axios interceptor adds <code>Authorization: Bearer &lt;accessToken&gt;</code> to all <code>/api/admin/**</code> calls automatically.
+        <div class="step-note">One interceptor, zero per-component boilerplate.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <strong>Silent refresh</strong> — A second Axios response interceptor catches 401 errors. On 401, it calls <code>POST /api/auth/refresh</code> with the refresh token, stores the new access token, and retries the original request transparently.
+        <div class="step-note">If refresh also returns 401 (expired), redirect to /login.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <strong>Logout</strong> — Call <code>POST /api/auth/logout</code> (blacklists the JTI), clear memory state, redirect to /login.
+        <div class="step-note">The logout API call ensures the server-side blacklist entry is created even if the user closes the tab — if they don't close the tab.</div>
+      </div>
+    </div>
+  </div>
+
+  
+  <h2>6. Project Structure (React + Vite)</h2>
+  <div class="tree">
+<span class="dir">admin-ui/</span><br />
+├── <span class="file">index.html</span><br />
+├── <span class="file">vite.config.ts</span>          <span class="cmt">— proxy /api → localhost:8080</span><br />
+├── <span class="dir">src/</span><br />
+│   ├── <span class="dir">api/</span><br />
+│   │   ├── <span class="file">axios.ts</span>         <span class="cmt">— base instance + auth/refresh interceptors</span><br />
+│   │   ├── <span class="file">auth.ts</span>          <span class="cmt">— login(), logout(), refresh()</span><br />
+│   │   ├── <span class="file">users.ts</span>         <span class="cmt">— getUsers(), createUser(), patchStatus(), deleteUser()</span><br />
+│   │   ├── <span class="file">roles.ts</span>         <span class="cmt">— getRoles(), createRole(), deleteRole()</span><br />
+│   │   └── <span class="file">audit.ts</span>         <span class="cmt">— getAuditLog(), getLoginAttempts()</span><br />
+│   ├── <span class="dir">store/</span><br />
+│   │   └── <span class="file">authStore.ts</span>     <span class="cmt">— Zustand: { token, user, login(), logout() }</span><br />
+│   ├── <span class="dir">pages/</span><br />
+│   │   ├── <span class="file">LoginPage.tsx</span><br />
+│   │   ├── <span class="file">DashboardPage.tsx</span><br />
+│   │   ├── <span class="file">UsersPage.tsx</span><br />
+│   │   ├── <span class="file">RolesPage.tsx</span><br />
+│   │   ├── <span class="file">AuditPage.tsx</span><br />
+│   │   └── <span class="file">LoginAttemptsPage.tsx</span><br />
+│   ├── <span class="dir">components/</span><br />
+│   │   ├── <span class="file">Sidebar.tsx</span><br />
+│   │   ├── <span class="file">UserTable.tsx</span>    <span class="cmt">— paginated table with action buttons</span><br />
+│   │   ├── <span class="file">StatusBadge.tsx</span>  <span class="cmt">— enabled/locked/deleted badges</span><br />
+│   │   ├── <span class="file">ConfirmDialog.tsx</span><span class="cmt">— delete / erase confirmation</span><br />
+│   │   └── <span class="file">Pagination.tsx</span><br />
+│   ├── <span class="dir">hooks/</span><br />
+│   │   ├── <span class="file">useUsers.ts</span>      <span class="cmt">— React Query: fetches paged users</span><br />
+│   │   └── <span class="file">useAudit.ts</span>      <span class="cmt">— React Query: fetches paged audit log</span><br />
+│   └── <span class="file">main.tsx</span>             <span class="cmt">— React Router: route definitions + guards</span>
+  </div>
+
+  
+  <h2>7. Implementation Plan</h2>
+  <table class="plan">
+    <thead><tr><th>Phase</th><th>Work</th><th>Effort</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Phase 1 — Backend prep</td>
+        <td>Add CORS config to <code>SecurityConfig</code> for <code>http://localhost:5173</code>. No endpoint changes needed.</td>
+        <td><span class="tag hi">30 min</span></td>
+      </tr>
+      <tr>
+        <td>Phase 2 — Scaffold</td>
+        <td><code>npm create vite@latest admin-ui -- --template react-ts</code>. Install: <code>axios</code>, <code>react-router-dom</code>, <code>zustand</code>, <code>@tanstack/react-query</code>, <code>tailwindcss</code>.</td>
+        <td><span class="tag hi">1 h</span></td>
+      </tr>
+      <tr>
+        <td>Phase 3 — Auth layer</td>
+        <td>Axios instance + request/response interceptors. Zustand auth store. Login page. Route guard (redirect to /login if no token or non-ADMIN).</td>
+        <td><span class="tag hi">2 h</span></td>
+      </tr>
+      <tr>
+        <td>Phase 4 — User Management</td>
+        <td>UsersPage with paginated table, status badges, action buttons (enable/disable/lock/unlock/delete/erase), create-user modal.</td>
+        <td><span class="tag md">3 h</span></td>
+      </tr>
+      <tr>
+        <td>Phase 5 — Roles</td>
+        <td>RolesPage: list + create + delete. Assign/revoke from user row in UsersPage.</td>
+        <td><span class="tag md">2 h</span></td>
+      </tr>
+      <tr>
+        <td>Phase 6 — Audit &amp; Attempts</td>
+        <td>AuditPage: paginated table + username filter. LoginAttemptsPage: search + table.</td>
+        <td><span class="tag md">2 h</span></td>
+      </tr>
+      <tr>
+        <td>Phase 7 — Dashboard</td>
+        <td>Summary counters from user list (computed client-side). Recent events card. Navigation sidebar.</td>
+        <td><span class="tag lo">2 h</span></td>
+      </tr>
+      <tr>
+        <td>Phase 8 — Production deploy</td>
+        <td><code>npm run build</code> → copy <code>dist/</code> into Spring Boot <code>src/main/resources/static/admin/</code>. Or serve via Nginx as a separate container.</td>
+        <td><span class="tag lo">1 h</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  
+  <h2>8. One Backend Change Needed — CORS</h2>
+  <p>The only Spring Boot change required is enabling CORS for the React dev server origin. Add this to <code>SecurityConfig.securityFilterChain()</code>:</p>
+  <div class="tree">
+.cors(cors -&gt; cors.configurationSource(request -&gt; {<br />
+    CorsConfiguration cfg = new CorsConfiguration();<br />
+    cfg.setAllowedOrigins(List.of("http://localhost:5173")); <span class="cmt">// Vite dev server</span><br />
+    cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));<br />
+    cfg.setAllowedHeaders(List.of("*"));<br />
+    cfg.setAllowCredentials(true);  <span class="cmt">// needed for HttpOnly cookie refresh token</span><br />
+    return cfg;<br />
+}))
+  </div>
+  <div class="design-note">
+    <strong>Production CORS:</strong> Replace <code>localhost:5173</code> with the actual deployed origin (e.g. <code>https://admin.yourdomain.com</code>). Never use <code>*</code> with <code>allowCredentials(true)</code>.
+  </div>
+
+</div>
+<footer>Made with IBM Bob</footer>
+</body>
+</html>

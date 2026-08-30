@@ -5,6 +5,7 @@ import com.jatin.jwtauth.security.OAuth2SuccessHandler;
 import com.jatin.jwtauth.service.OAuth2UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,6 +22,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 /**
  * SecurityConfig — Spring Security 6 configuration.
@@ -43,9 +49,16 @@ public class SecurityConfig {
     private final OAuth2UserService oAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
+    /** Comma-separated allowed origins — override via CORS_ORIGINS env var in production. */
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+    private List<String> allowedOrigins;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            // Enable CORS using our CorsConfigurationSource bean
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
             // Disable CSRF — REST APIs use tokens, not browser cookies
             .csrf(AbstractHttpConfigurer::disable)
 
@@ -125,5 +138,26 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         // BCrypt automatically handles salt — safe against rainbow table attacks
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * CORS configuration — allows the React admin panel (Vite dev :5173)
+     * and any other origin listed in app.cors.allowed-origins to call the API.
+     *
+     * In production set: CORS_ORIGINS=https://admin.yourdomain.com
+     * Never use * with allowCredentials(true).
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(allowedOrigins);
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);   // required for HttpOnly cookie refresh token
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }

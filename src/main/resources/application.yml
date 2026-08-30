@@ -59,6 +59,8 @@ jwt:
 # ─── Application settings ─────────────────────────────────────────────────────
 app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
   oauth2:
     redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/callback}
   rate-limit:
