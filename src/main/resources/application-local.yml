@@ -1,0 +1,50 @@
+# ─── Local development profile ────────────────────────────────────────────────
+#
+# Activated with:  -Dspring.profiles.active=local
+#                  or: mvn spring-boot:run -Dspring-boot.run.profiles=local
+#
+# Overrides the default PostgreSQL datasource with an in-memory H2 database so
+# the application can be started on any machine without installing PostgreSQL.
+#
+# ⚠ Do NOT use in production. Data is lost on every restart.
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:jwtlocaldb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  # H2 console — browse data at http://localhost:8080/h2-console
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # Disable STARTTLS for local mail — emails are logged to console instead
+  mail:
+    host: localhost
+    port: 25
+    username: local
+    password:
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+            required: false
+
+# Actuator: disable mail health check (no real SMTP locally)
+management:
+  health:
+    mail:
+      enabled: false

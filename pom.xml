@@ -91,11 +91,13 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- H2 in-memory DB for integration tests (replaces PostgreSQL) -->
+        <!-- H2 — test scope for integration tests, also available at runtime for the 'local' profile.
+             A single declaration with runtime scope covers both: Maven includes runtime deps in test classpath. -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>test</scope>
+            <scope>runtime</scope>
+            <optional>true</optional>
         </dependency>
 
         <!-- Springdoc OpenAPI — generates Swagger UI + OpenAPI 3 spec -->
