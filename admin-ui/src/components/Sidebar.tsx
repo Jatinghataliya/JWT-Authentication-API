@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Users, Shield, ScrollText, KeyRound, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, Shield, ScrollText, KeyRound, LogOut, HeartPulse } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { authApi } from '@/api/auth'
 import toast from 'react-hot-toast'
@@ -11,6 +11,7 @@ const nav = [
   { to: '/roles',          label: 'Roles',           Icon: Shield },
   { to: '/audit',          label: 'Audit Log',       Icon: ScrollText },
   { to: '/login-attempts', label: 'Login Attempts',  Icon: KeyRound },
+  { to: '/system-health',  label: 'System Health',   Icon: HeartPulse },
 ]
 
 export default function Sidebar() {

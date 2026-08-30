@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { Users, ShieldCheck, Lock, Trash2, Activity } from 'lucide-react'
+import { Users, ShieldCheck, Lock, Trash2, Activity, HeartPulse } from 'lucide-react'
 import { usersApi } from '@/api/users'
 import { auditApi } from '@/api/audit'
+import { actuatorApi } from '@/api/actuator'
+import { Link } from 'react-router-dom'
 import type { UserSummary } from '@/types'
+import clsx from 'clsx'
 
 function StatCard({ label, value, icon: Icon, color }: {
   label: string; value: number | string; icon: React.ElementType; color: string
@@ -40,7 +43,19 @@ export default function DashboardPage() {
     queryFn: () => auditApi.getPaged(undefined, 0, 10),
   })
 
+  const { data: health } = useQuery({
+    queryKey: ['actuator-health'],
+    queryFn: actuatorApi.health,
+    refetchInterval: 30_000,
+    staleTime: 10_000,
+  })
+
   const stats = usersPage ? computeStats(usersPage.content) : null
+
+  const healthColor =
+    health?.status === 'UP'   ? 'bg-green-500' :
+    health?.status === 'DOWN' ? 'bg-red-500'   :
+                                 'bg-yellow-500'
 
   const eventColors: Record<string, string> = {
     LOGIN_SUCCESS: 'badge-green',
@@ -63,11 +78,23 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total users"    value={stats?.total ?? '—'} icon={Users}       color="bg-blue-500" />
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <StatCard label="Total users"     value={stats?.total  ?? '—'} icon={Users}       color="bg-blue-500" />
         <StatCard label="Active accounts" value={stats?.active ?? '—'} icon={ShieldCheck} color="bg-green-500" />
         <StatCard label="Locked accounts" value={stats?.locked ?? '—'} icon={Lock}        color="bg-yellow-500" />
         <StatCard label="Erased accounts" value={stats?.erased ?? '—'} icon={Trash2}      color="bg-red-500" />
+        {/* Health quick-glance — links to System Health page */}
+        <Link to="/system-health" className="card p-5 flex items-center gap-4 hover:border-blue-300 transition-colors">
+          <div className={clsx('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', healthColor)}>
+            <HeartPulse size={18} className="text-white" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900 leading-none">
+              {health?.status ?? '—'}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">App Health →</p>
+          </div>
+        </Link>
       </div>
 
       {/* Recent audit events */}

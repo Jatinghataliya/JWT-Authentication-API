@@ -7,6 +7,7 @@ import UsersPage from '@/pages/UsersPage'
 import RolesPage from '@/pages/RolesPage'
 import AuditPage from '@/pages/AuditPage'
 import LoginAttemptsPage from '@/pages/LoginAttemptsPage'
+import SystemHealthPage from '@/pages/SystemHealthPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { accessToken, isAdmin } = useAuthStore()
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="roles" element={<RolesPage />} />
           <Route path="audit" element={<AuditPage />} />
           <Route path="login-attempts" element={<LoginAttemptsPage />} />
+          <Route path="system-health" element={<SystemHealthPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
