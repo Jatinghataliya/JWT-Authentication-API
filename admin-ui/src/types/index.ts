@@ -39,6 +39,16 @@ export interface AdminRegisterRequest {
   roles: string[]
 }
 
+export interface UserSearchParams {
+  username?: string
+  email?: string
+  role?: string
+  enabled?: boolean | null
+  accountNonLocked?: boolean | null
+  page?: number
+  size?: number
+}
+
 // ─── Roles ────────────────────────────────────────────────────────────────────
 
 export interface RoleResponse {

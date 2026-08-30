@@ -5,12 +5,35 @@ import type {
   AuthResponse,
   LoginAttemptSummary,
   PagedResponse,
+  UserSearchParams,
   UserSummary,
 } from '@/types'
 
 export const usersApi = {
   getPaged: (page = 0, size = 20) =>
     api.get<PagedResponse<UserSummary>>(`/admin/users/paged?page=${page}&size=${size}`).then((r) => r.data),
+
+  search: (params: UserSearchParams) => {
+    const q = new URLSearchParams()
+    if (params.username)         q.set('username', params.username)
+    if (params.email)            q.set('email', params.email)
+    if (params.role)             q.set('role', params.role)
+    if (params.enabled != null)  q.set('enabled', String(params.enabled))
+    if (params.accountNonLocked != null) q.set('accountNonLocked', String(params.accountNonLocked))
+    q.set('page', String(params.page ?? 0))
+    q.set('size', String(params.size ?? 20))
+    return api.get<PagedResponse<UserSummary>>(`/admin/users/search?${q}`).then((r) => r.data)
+  },
+
+  exportCsvUrl: (params: UserSearchParams): string => {
+    const q = new URLSearchParams()
+    if (params.username)         q.set('username', params.username)
+    if (params.email)            q.set('email', params.email)
+    if (params.role)             q.set('role', params.role)
+    if (params.enabled != null)  q.set('enabled', String(params.enabled))
+    if (params.accountNonLocked != null) q.set('accountNonLocked', String(params.accountNonLocked))
+    return `/api/admin/users/export.csv?${q}`
+  },
 
   getById: (id: number) =>
     api.get<UserSummary>(`/admin/users/${id}`).then((r) => r.data),

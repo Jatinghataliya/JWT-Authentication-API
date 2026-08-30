@@ -4,12 +4,14 @@ import com.jatin.jwtauth.dto.AdminRegisterRequest;
 import com.jatin.jwtauth.dto.AssignRoleRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
 import com.jatin.jwtauth.dto.PagedResponse;
+import com.jatin.jwtauth.dto.UserSearchRequest;
 import com.jatin.jwtauth.dto.UserSummary;
 import com.jatin.jwtauth.entity.Role;
 import com.jatin.jwtauth.entity.User;
 import com.jatin.jwtauth.repository.RefreshTokenRepository;
 import com.jatin.jwtauth.repository.RoleRepository;
 import com.jatin.jwtauth.repository.UserRepository;
+import com.jatin.jwtauth.repository.UserSpecification;
 import com.jatin.jwtauth.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -25,6 +27,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,6 +102,70 @@ public class AdminService {
                 .collect(Collectors.toList());
         return new PagedResponse<>(content, result.getNumber(), result.getSize(),
                 result.getTotalElements(), result.getTotalPages(), result.isLast());
+    }
+
+    /**
+     * Dynamic search with optional filters: username, email, role, enabled,
+     * accountNonLocked, createdAfter, createdBefore.
+     * All filters are ANDed; null/blank fields are ignored.
+     */
+    public PagedResponse<UserSummary> searchUsers(UserSearchRequest req) {
+        Pageable pageable = PageRequest.of(
+                req.getPage(), req.getSize(), Sort.by("username").ascending());
+        Page<User> result = userRepository.findAll(
+                UserSpecification.from(req), pageable);
+        List<UserSummary> content = result.getContent().stream()
+                .map(UserSummary::from)
+                .collect(Collectors.toList());
+        return new PagedResponse<>(content, result.getNumber(), result.getSize(),
+                result.getTotalElements(), result.getTotalPages(), result.isLast());
+    }
+
+    /**
+     * Write all users matching the search criteria to the given PrintWriter as CSV.
+     * Uses streaming (no in-memory list of all rows) so large exports don't OOM.
+     *
+     * CSV columns:
+     *   id, username, email, firstName, lastName, enabled, accountNonLocked,
+     *   emailVerified, roles, createdAt
+     */
+    public void exportUsersCsv(UserSearchRequest req, PrintWriter writer) {
+        // Fetch up to 10 000 rows for the export (safety cap)
+        Pageable pageable = PageRequest.of(0, 10_000, Sort.by("username").ascending());
+        Page<User> result = userRepository.findAll(
+                UserSpecification.from(req), pageable);
+
+        // Header
+        writer.println("id,username,email,firstName,lastName,enabled,accountNonLocked,emailVerified,roles,createdAt");
+
+        // Rows
+        result.getContent().forEach(u -> {
+            String roles = u.getRoles().stream()
+                    .map(r -> r.getName())
+                    .collect(Collectors.joining("|"));
+            writer.printf("%d,%s,%s,%s,%s,%b,%b,%b,%s,%s%n",
+                    u.getId(),
+                    csvEscape(u.getUsername()),
+                    csvEscape(u.getEmail()),
+                    csvEscape(u.getFirstName()),
+                    csvEscape(u.getLastName()),
+                    u.isEnabled(),
+                    u.isAccountNonLocked(),
+                    u.isEmailVerified(),
+                    csvEscape(roles),
+                    u.getCreatedAt() != null ? u.getCreatedAt().toString() : ""
+            );
+        });
+        writer.flush();
+    }
+
+    /** Wrap a value in double-quotes if it contains a comma, newline, or quote. */
+    private static String csvEscape(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
 
     /** Return a single user by id. Cached by id. */

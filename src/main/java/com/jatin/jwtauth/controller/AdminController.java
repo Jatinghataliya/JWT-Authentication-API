@@ -9,6 +9,7 @@ import com.jatin.jwtauth.dto.PagedResponse;
 import com.jatin.jwtauth.dto.PasswordPolicyDto;
 import com.jatin.jwtauth.dto.RoleRequest;
 import com.jatin.jwtauth.dto.RoleResponse;
+import com.jatin.jwtauth.dto.UserSearchRequest;
 import com.jatin.jwtauth.dto.UserSummary;
 import com.jatin.jwtauth.service.AccountErasureService;
 import com.jatin.jwtauth.service.AdminService;
@@ -18,13 +19,16 @@ import com.jatin.jwtauth.service.RoleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -108,6 +112,26 @@ public class AdminController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(adminService.getAllUsersPaged(page, size));
+    }
+
+    @Operation(summary = "Search users with filters",
+               description = "Dynamic search — all params are optional and ANDed together. "
+                           + "Supports: username (partial), email (partial), role (exact), "
+                           + "enabled, accountNonLocked, createdAfter, createdBefore, page, size.")
+    @GetMapping("/users/search")
+    public ResponseEntity<PagedResponse<UserSummary>> searchUsers(UserSearchRequest req) {
+        return ResponseEntity.ok(adminService.searchUsers(req));
+    }
+
+    @Operation(summary = "Export users as CSV",
+               description = "Downloads all users matching the optional filter params as a CSV file. "
+                           + "Accepts the same filter params as /users/search. "
+                           + "Capped at 10 000 rows.")
+    @GetMapping(value = "/users/export.csv", produces = "text/csv")
+    public void exportUsersCsv(UserSearchRequest req, HttpServletResponse response) throws IOException {
+        response.setContentType(MediaType.parseMediaType("text/csv").toString());
+        response.setHeader("Content-Disposition", "attachment; filename=\"users.csv\"");
+        adminService.exportUsersCsv(req, response.getWriter());
     }
 
     @Operation(summary = "Get user by ID")
