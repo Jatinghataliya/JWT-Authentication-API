@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Lock } from 'lucide-react'
 import { usersApi } from '@/api/users'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 
 export default function LoginAttemptsPage() {
@@ -11,12 +10,7 @@ export default function LoginAttemptsPage() {
   const [activeUsername, setActiveUsername] = useState('')
   const [userId, setUserId] = useState<number | null>(null)
 
-  // Find user id by username using the paged endpoint (search by name client-side)
-  const { data: usersPage } = useQuery({
-    queryKey: ['users', 0, 200],
-    queryFn: () => usersApi.getPaged(0, 200),
-  })
-
+  // Fetch login attempts only when a userId is selected
   const { data: attempts, isLoading } = useQuery({
     queryKey: ['attempts', userId],
     queryFn: () => usersApi.getLoginAttempts(userId!),
@@ -29,15 +23,24 @@ export default function LoginAttemptsPage() {
     onError: () => toast.error('Lock failed'),
   })
 
-  function doSearch() {
+  async function doSearch() {
     const trimmed = searchInput.trim()
     if (!trimmed) return
-    const found = usersPage?.content.find(
-      (u) => u.username.toLowerCase() === trimmed.toLowerCase(),
-    )
-    if (!found) { toast.error(`User "${trimmed}" not found`); return }
-    setActiveUsername(found.username)
-    setUserId(found.id)
+    try {
+      // Use server-side search by exact username
+      const result = await usersApi.search({ username: trimmed, size: 50 })
+      const found = result.content.find(
+        (u) => u.username.toLowerCase() === trimmed.toLowerCase(),
+      )
+      if (!found) {
+        toast.error(`User "${trimmed}" not found`)
+        return
+      }
+      setActiveUsername(found.username)
+      setUserId(found.id)
+    } catch {
+      toast.error('Failed to search for user')
+    }
   }
 
   return (
