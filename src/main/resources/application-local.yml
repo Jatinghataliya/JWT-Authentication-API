@@ -1,10 +1,8 @@
 # ─── Local development profile ────────────────────────────────────────────────
 #
-# Activated with:  -Dspring.profiles.active=local
-#                  or: mvn spring-boot:run -Dspring-boot.run.profiles=local
-#
+# Activated automatically (default profile set in application.yml).
 # Overrides the default PostgreSQL datasource with an in-memory H2 database so
-# the application can be started on any machine without installing PostgreSQL.
+# the application can be started on any machine without PostgreSQL or Redis.
 #
 # ⚠ Do NOT use in production. Data is lost on every restart.
 
@@ -43,8 +41,14 @@ spring:
             enable: false
             required: false
 
-# Actuator: disable mail health check (no real SMTP locally)
+  # Disable Redis auto-configuration locally — no Redis server needed
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+# Actuator: disable mail + redis health checks (no real services locally)
 management:
   health:
     mail:
+      enabled: false
+    redis:
       enabled: false

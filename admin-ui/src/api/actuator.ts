@@ -16,7 +16,13 @@
  */
 import axios from 'axios'
 
-const actuator = axios.create({ baseURL: '/actuator' })
+// Separate axios instance for actuator — no JWT interceptor needed (public endpoints).
+// validateStatus: accept 200 AND 503 — Spring returns 503 when status=DOWN,
+// but the response body still contains the full health breakdown we want to show.
+const actuator = axios.create({
+  baseURL: '/actuator',
+  validateStatus: (status) => (status >= 200 && status < 300) || status === 503,
+})
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
