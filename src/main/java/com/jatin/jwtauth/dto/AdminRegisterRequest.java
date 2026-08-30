@@ -1,5 +1,6 @@
 package com.jatin.jwtauth.dto;
 
+import com.jatin.jwtauth.validation.PasswordStrength;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
@@ -19,7 +20,7 @@ public class AdminRegisterRequest {
     private String username;
 
     @NotBlank(message = "Credential must not be blank")
-    @Size(min = 6, message = "Credential must be at least 6 characters")
+    @PasswordStrength
     private String password;
 
     @NotEmpty(message = "At least one role name must be provided")

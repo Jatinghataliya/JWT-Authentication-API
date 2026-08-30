@@ -63,6 +63,7 @@ public class AdminService {
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .passwordChangedAt(java.time.LocalDateTime.now())
                 .roles(resolvedRoles)
                 .build();
 

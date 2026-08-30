@@ -83,6 +83,7 @@ public class PasswordResetService {
 
         User user = resetToken.getUser();
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordChangedAt(java.time.LocalDateTime.now());
         userRepository.save(user);
 
         // Mark token as used — prevents replay attacks

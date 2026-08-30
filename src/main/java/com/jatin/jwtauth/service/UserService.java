@@ -74,6 +74,7 @@ public class UserService {
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setPasswordChangedAt(java.time.LocalDateTime.now());
         userRepository.save(user);
     }
 

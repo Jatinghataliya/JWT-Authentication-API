@@ -57,6 +57,7 @@ public class AuthService {
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .passwordChangedAt(java.time.LocalDateTime.now())
                 .roles(Set.of(defaultRole))
                 .build();
 

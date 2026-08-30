@@ -1,7 +1,7 @@
 package com.jatin.jwtauth.dto;
 
+import com.jatin.jwtauth.validation.PasswordStrength;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
@@ -15,6 +15,6 @@ public class ResetPasswordRequest {
     private String token;
 
     @NotBlank(message = "New password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    @PasswordStrength
     private String newPassword;
 }

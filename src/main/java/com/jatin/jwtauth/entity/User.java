@@ -113,6 +113,16 @@ public class User {
     @Column(name = "locked_at")
     private LocalDateTime lockedAt;
 
+    // ─── Password policy ──────────────────────────────────────────────────────
+
+    /**
+     * Timestamp of the last password change (set on register, changePassword, resetPassword).
+     * Used by the password-expiry check in JwtAuthFilter.
+     * Null for users created before this feature was introduced (treated as not expired).
+     */
+    @Column(name = "password_changed_at")
+    private LocalDateTime passwordChangedAt;
+
     // ─── GDPR / Account deletion ──────────────────────────────────────────────
 
     /**

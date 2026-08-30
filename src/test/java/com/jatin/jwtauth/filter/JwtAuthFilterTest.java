@@ -1,5 +1,7 @@
 package com.jatin.jwtauth.filter;
 
+import com.jatin.jwtauth.config.PasswordPolicyConfig;
+import com.jatin.jwtauth.repository.UserRepository;
 import com.jatin.jwtauth.service.TokenBlacklistService;
 import com.jatin.jwtauth.util.JwtUtil;
 import io.jsonwebtoken.JwtException;
@@ -39,6 +41,8 @@ class JwtAuthFilterTest {
     @Mock private JwtUtil jwtUtil;
     @Mock private UserDetailsService userDetailsService;
     @Mock private TokenBlacklistService tokenBlacklistService;
+    @Mock private UserRepository userRepository;
+    @Mock private PasswordPolicyConfig passwordPolicyConfig;
     @Mock private FilterChain filterChain;
 
     @InjectMocks
@@ -119,6 +123,7 @@ class JwtAuthFilterTest {
         when(tokenBlacklistService.isBlacklisted("jti-valid-uuid")).thenReturn(false);
         when(userDetailsService.loadUserByUsername("jatin")).thenReturn(userDetails);
         when(jwtUtil.isTokenValid("valid.jwt.token", userDetails)).thenReturn(true);
+        when(passwordPolicyConfig.getExpiryDays()).thenReturn(0); // expiry disabled
 
         jwtAuthFilter.doFilterInternal(request, response, filterChain);
 

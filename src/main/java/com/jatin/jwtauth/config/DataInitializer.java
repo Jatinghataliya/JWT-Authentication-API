@@ -80,6 +80,7 @@ public class DataInitializer implements ApplicationRunner {
                     .lastName("User")
                     .enabled(true)
                     .emailVerified(true)
+                    .passwordChangedAt(java.time.LocalDateTime.now())
                     .roles(Set.of(adminRole, userRole))
                     .build();
             userRepository.save(admin);

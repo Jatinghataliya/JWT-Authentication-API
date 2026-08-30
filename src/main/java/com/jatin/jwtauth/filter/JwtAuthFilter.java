@@ -1,5 +1,8 @@
 package com.jatin.jwtauth.filter;
 
+import com.jatin.jwtauth.config.PasswordPolicyConfig;
+import com.jatin.jwtauth.entity.User;
+import com.jatin.jwtauth.repository.UserRepository;
 import com.jatin.jwtauth.service.TokenBlacklistService;
 import com.jatin.jwtauth.util.JwtUtil;
 import io.jsonwebtoken.JwtException;
@@ -18,6 +21,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 /**
  * JwtAuthFilter — runs once per request (OncePerRequestFilter).
@@ -38,6 +42,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final UserRepository userRepository;
+    private final PasswordPolicyConfig passwordPolicyConfig;
 
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String AUTH_HEADER = "Authorization";
@@ -78,6 +84,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                 // 5. Validate token (signature + expiry)
                 if (jwtUtil.isTokenValid(jwt, userDetails)) {
+
+                    // 5a. Password-expiry check — skip for password-change / reset endpoints
+                    //     so users can still change their expired password
+                    if (isPasswordExpired(username, request)) {
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.setContentType("application/json");
+                        response.getWriter().write(
+                                "{\"status\":403,\"error\":\"PASSWORD_EXPIRED\"," +
+                                "\"message\":\"Your password has expired. Please change it via PUT /api/user/me/password\"}");
+                        return;
+                    }
+
                     // 6. Build authentication token and store in SecurityContext
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
@@ -98,5 +116,30 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Returns true when the policy has expiryDays > 0 AND the user's
+     * passwordChangedAt is older than expiryDays.
+     * Skips the check for password-change and reset endpoints so users
+     * can still update an expired password without being blocked.
+     */
+    private boolean isPasswordExpired(String username, HttpServletRequest request) {
+        int expiryDays = passwordPolicyConfig.getExpiryDays();
+        if (expiryDays <= 0) return false;                          // expiry disabled
+
+        // Allow through: password-change, password-reset, logout
+        String path = request.getRequestURI();
+        if (path.contains("/me/password") ||
+            path.contains("/reset-password") ||
+            path.contains("/forgot-password") ||
+            path.contains("/logout")) {
+            return false;
+        }
+
+        return userRepository.findByUsername(username)
+                .map(User::getPasswordChangedAt)
+                .map(changed -> changed.isBefore(LocalDateTime.now().minusDays(expiryDays)))
+                .orElse(false);   // null passwordChangedAt → treat as not expired (legacy users)
     }
 }

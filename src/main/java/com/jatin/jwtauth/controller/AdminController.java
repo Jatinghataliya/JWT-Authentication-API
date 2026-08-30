@@ -1,10 +1,12 @@
 package com.jatin.jwtauth.controller;
 
+import com.jatin.jwtauth.config.PasswordPolicyConfig;
 import com.jatin.jwtauth.dto.AdminRegisterRequest;
 import com.jatin.jwtauth.dto.AssignRoleRequest;
 import com.jatin.jwtauth.dto.AuthResponse;
 import com.jatin.jwtauth.dto.AuditEventSummary;
 import com.jatin.jwtauth.dto.PagedResponse;
+import com.jatin.jwtauth.dto.PasswordPolicyDto;
 import com.jatin.jwtauth.dto.RoleRequest;
 import com.jatin.jwtauth.dto.RoleResponse;
 import com.jatin.jwtauth.dto.UserSummary;
@@ -39,6 +41,7 @@ public class AdminController {
     private final LoginAttemptService loginAttemptService;
     private final AuditService auditService;
     private final AccountErasureService accountErasureService;
+    private final PasswordPolicyConfig passwordPolicyConfig;
 
     // ═══ Role Catalog ════════════════════════════════════════════════════════
 
@@ -197,5 +200,35 @@ public class AdminController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(auditService.getEventsPaged(username, page, size));
+    }
+
+    // ═══ Password Policy ══════════════════════════════════════════════════════
+
+    @Operation(summary = "Get current password policy",
+               description = "Returns the active password complexity and expiry rules.")
+    @GetMapping("/settings/password-policy")
+    public ResponseEntity<PasswordPolicyDto> getPasswordPolicy() {
+        PasswordPolicyDto dto = PasswordPolicyDto.builder()
+                .minLength(passwordPolicyConfig.getMinLength())
+                .requireUppercase(passwordPolicyConfig.isRequireUppercase())
+                .requireDigit(passwordPolicyConfig.isRequireDigit())
+                .requireSpecialChar(passwordPolicyConfig.isRequireSpecialChar())
+                .expiryDays(passwordPolicyConfig.getExpiryDays())
+                .build();
+        return ResponseEntity.ok(dto);
+    }
+
+    @Operation(summary = "Update password policy",
+               description = "Hot-updates password rules at runtime — no restart needed. "
+                           + "New rules apply immediately to all subsequent login/register/change-password requests. "
+                           + "Set expiryDays=0 to disable expiry.")
+    @PutMapping("/settings/password-policy")
+    public ResponseEntity<PasswordPolicyDto> updatePasswordPolicy(@RequestBody PasswordPolicyDto dto) {
+        passwordPolicyConfig.setMinLength(Math.max(1, dto.getMinLength()));
+        passwordPolicyConfig.setRequireUppercase(dto.isRequireUppercase());
+        passwordPolicyConfig.setRequireDigit(dto.isRequireDigit());
+        passwordPolicyConfig.setRequireSpecialChar(dto.isRequireSpecialChar());
+        passwordPolicyConfig.setExpiryDays(Math.max(0, dto.getExpiryDays()));
+        return ResponseEntity.ok(dto);
     }
 }
