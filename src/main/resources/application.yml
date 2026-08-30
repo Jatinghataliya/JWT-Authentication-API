@@ -1,4 +1,9 @@
 spring:
+  # ─── Active profile: 'local' uses H2 in-memory DB (no PostgreSQL needed).
+  # Override with DB_URL / DB_USERNAME / DB_PASSWORD env vars for production.
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
   # ─── Mail (SMTP) ────────────────────────────────────────────────────────────
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
